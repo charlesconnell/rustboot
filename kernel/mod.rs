@@ -12,6 +12,8 @@ pub mod ptr;
 pub mod memory;
 pub mod sgash;
 
+pub mod screen;
+
 #[cfg(target_word_size = "32")]
 pub mod rt;
 

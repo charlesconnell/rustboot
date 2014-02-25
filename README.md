@@ -62,6 +62,7 @@ $ cd rust
 $ ./configure
 $ make && make install
 ```
+(Note that as of 24/02/2014, @cceckman was having trouble building rust-core from rust's master branch; try the 0.9 release.)
 
 ## Running it
 You may have to make some small changes before it builds. 

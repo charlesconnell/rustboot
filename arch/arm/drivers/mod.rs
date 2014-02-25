@@ -5,6 +5,8 @@ use super::io;
 use core::option::{Option, None};
 use kernel;
 
+pub mod arm1176jzf_s;
+
 pub fn init() {
     unsafe {
         kernel::int_table.map(|t| {

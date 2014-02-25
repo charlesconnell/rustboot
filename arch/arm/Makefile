@@ -1,16 +1,19 @@
 SHELL=/bin/bash
 TARGET := arm-linux-noeabi
 
+CHIP := arm926ej-s
+rpi: CHIP := arm1176jzf-s
+
 GCC_PREFIX := $(GCC_PREFIX)arm-none-eabi-
 
 RUSTC := $(RUST_ROOT)/bin/rustc
-RUSTCFLAGS := -O --target $(TARGET) -Z no-landing-pads -Z debug-info -Z extra-debug-info
+RUSTCFLAGS := -O --target $(TARGET) -Z no-landing-pads -Z debug-info -Z extra-debug-info --cfg $(CHIP)
 
 AS := $(GCC_PREFIX)as
 LD := $(GCC_PREFIX)ld
 
 LLC := $(LLVM_ROOT)/bin/llc
-LLCFLAGS := -march=arm -mcpu=arm926ej-s --float-abi=hard -asm-verbose
+LLCFLAGS := -march=arm -mcpu=$(CHIP) --float-abi=hard -asm-verbose
 
 GDB := $(GCC_PREFIX)gdb
 OBJCOPY := $(GCC_PREFIX)objcopy
@@ -32,8 +35,11 @@ MODS := $(wildcard */*.rs) $(wildcard ../../kernel/*.rs) $(wildcard ../../kernel
 
 .PHONY: all run debug clean
 
+# Default target: QEMU
 all: $(BDIR)/kernel.bin
 	@wc -c $^
+
+# Alternate target: 
 
 # Library rust-core
 $(LCORE):
