@@ -22,6 +22,7 @@ CORE_LIB := ../../rust-core/core/lib.rs
 LCORE := $(BDIR)/$(shell $(RUSTC) --crate-file-name $(CORE_LIB))
 OBJS := $(BDIR)/loader.o $(BDIR)/aeabi_runtime.o $(BDIR)/main.o $(BDIR)/core.o
 LINK := $(BDIR)/linker.ld $(OBJS)
+MAP := $(BDIR)/kernel.map
 
 MODS := $(wildcard */*.rs) $(wildcard ../../kernel/*.rs) $(wildcard ../../kernel/*/*.rs) $(wildcard ../../kernel/*/*/*.rs)
 
@@ -53,7 +54,7 @@ $(BDIR)/main.bc: ../../lib.rs $(MODS) $(LCORE)
 
 # kernel (object)
 $(BDIR)/kernel.elf: $(LINK)
-	$(LD) -o $@ -T $^
+	$(LD) -Map $(MAP) -o $@ -T $^
 
 # kernel (binary image)
 $(BDIR)/kernel.bin: $(BDIR)/kernel.elf
@@ -77,4 +78,4 @@ else
 endif
 
 clean:
-	rm -f $(BDIR)/*.{d,o,bc,rlib,so,ll,embed,elf,bin}
+	rm -f $(BDIR)/*.{d,o,bc,rlib,so,ll,embed,elf,bin,map}
