@@ -129,6 +129,71 @@ impl ScreenCanvas for screen_buffer_info{
 }
 
 mod gpio{
-    pub static GPIO_BASE : u32 = 0x20200000;
+    use core::option::{Option, Some, None};
+    use super::super::io::*;
+
+    pub static mut GPIO_BASE : u32 = 0x20200000;
     static GPIO_PIN_MAX : uint = 54;
+
+    struct Pin {
+        id : uint
+    }
+
+//trait SARTPin : Pin;
+//trait SPIPin : Pin;
+    impl Pin{
+        fn get(no : uint) -> Option<Pin>{
+            match no {
+                0 .. GPIO_PIN_MAX => Some(Pin{id : no}),
+                _ => None
+            }
+        }
+        fn setMode(&self, x :pin_mode) -> bool{
+            false
+        }
+        fn getMode(&self) -> Option<pin_mode>{
+            let bank_offset : u32 = (self.id as u32 / 10) * 4; // offset from GPIO base
+            let bank_shift : u32 = (self.id as u32 % 10) * 3;  // amt to shift within bank
+            unsafe {
+                return pin_mode::from_uint(((read(GPIO_BASE + bank_offset) >> bank_shift) & 7) as uint);
+            }
+        }
+
+        fn write(&self, value : bool) -> Option<bool>{
+            None
+        }
+
+        fn read(&self) -> Option<bool>{
+            None
+        }
+
+    }
+
+
+    /// IO mode for GPIO pins
+    enum pin_mode{
+        INPUT = 0,
+        OUTPUT = 1,
+        ALT0 = 4,
+        ALT1 = 5,
+        ALT2 = 6,
+        ALT3 = 7,
+        ALT4 = 3,
+        ALT5 = 2
+    }
+    impl pin_mode{
+        fn from_uint(x : uint) -> Option<pin_mode>{
+            match x {
+                0 => Some(INPUT),
+                1 => Some(OUTPUT),
+                4 => Some(ALT0),
+                5 => Some(ALT1),
+                6 => Some(ALT2),
+                7 => Some(ALT3),
+                3 => Some(ALT4),
+                2 => Some(ALT5),
+                _ => None
+            }
+        }
+    }
 }
