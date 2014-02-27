@@ -5,14 +5,24 @@ use super::io;
 use core::option::{Option, None};
 use kernel;
 
+//use self::arm1176jzf_s::gpio::pin_mode::OUTPUT;
+use self::arm1176jzf_s::gpio;
+
 pub mod arm1176jzf_s;
 
 pub fn init() {
+
+    /* // not for RPi
     unsafe {
         kernel::int_table.map(|t| {
 	// See http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dai0235c/index.html
             t.enable(interrupt::IRQ, keypress);
         });
+    }*/
+    unsafe{
+        let p = gpio::Pin::get(16).get();
+        p.setMode(gpio::OUTPUT);
+        p.write(false);
     }
 }
 

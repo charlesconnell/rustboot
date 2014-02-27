@@ -60,7 +60,7 @@ mod mailman{
 
 /// driver::arm1176jzf_s::screen
 /// Driver for communicating with GPU, drawing to screen
-mod screen{
+pub mod screen{
     use kernel::screen::*;
     use super::mailman;
 
@@ -128,50 +128,88 @@ impl ScreenCanvas for screen_buffer_info{
     // Need screenbuf instance acquisition
 }
 
-mod gpio{
+pub mod gpio{
     use core::option::{Option, Some, None};
     use super::super::io::*;
 
-    pub static mut GPIO_BASE : u32 = 0x20200000;
-    static GPIO_PIN_MAX : uint = 54;
+    pub static mut BASE : u32 = 0x20200000;
+    static PINID_MAX : uint = 54;
+    static FSEL : u32 = 0;
+    static OUTPUT_SET : u32 = 0x1C;
+    static OUTPUT_CLR : u32 = 0x28;
+    static OUTPUT_LVL : u32 = 0x34;
 
-    struct Pin {
+    pub struct Pin {
         id : uint
     }
 
 //trait SARTPin : Pin;
 //trait SPIPin : Pin;
     impl Pin{
-        fn get(no : uint) -> Option<Pin>{
+        pub fn get(no : uint) -> Option<Pin>{
             match no {
-                0 .. GPIO_PIN_MAX => Some(Pin{id : no}),
+                0 .. PINID_MAX => Some(Pin{id : no}),
                 _ => None
             }
         }
-        fn setMode(&self, x :pin_mode) -> bool{
-            false
-        }
-        fn getMode(&self) -> Option<pin_mode>{
-            let bank_offset : u32 = (self.id as u32 / 10) * 4; // offset from GPIO base
+       
+        pub unsafe fn setMode(&self, mode : pin_mode) -> bool{
+            // TODO: Validate modes on a per-pin basis
+
+            let bank : u32 = BASE + FSEL + (self.id as u32 / 10) * 4; // offset from GPIO base
             let bank_shift : u32 = (self.id as u32 % 10) * 3;  // amt to shift within bank
-            unsafe {
-                return pin_mode::from_uint(((read(GPIO_BASE + bank_offset) >> bank_shift) & 7) as uint);
+
+            let prev_reg = read(bank);
+            wh(bank, (prev_reg ^ (prev_reg & (7 << bank_shift))) | (mode as u32 << bank_shift));
+
+            true
+        }
+        pub unsafe fn getMode(&self) -> Option<pin_mode>{
+            let bank : u32 = BASE + FSEL + (self.id as u32 / 10) * 4; // offset from GPIO base
+            let bank_shift : u32 = (self.id as u32 % 10) * 3;  // amt to shift within bank
+
+            pin_mode::from_uint(((read(bank) >> bank_shift) & 7) as uint)
+        }
+
+        pub unsafe fn write(&self, value : bool) -> Option<bool>{
+            match self.getMode().get() {
+                OUTPUT => Some({
+                    let bank = BASE // base GPIO address
+                        + if(value){ OUTPUT_SET }else{ OUTPUT_CLR } // Which bank: set or clear
+                        + if(self.id > 31){ 4 }else{ 0 }              // Second register if pin is in second bank
+                        ;
+                    let mask = 1 << (self.id % 32);
+                    wh(bank, mask);
+                    true
+                }),
+                _ => None
             }
         }
 
-        fn write(&self, value : bool) -> Option<bool>{
-            None
-        }
-
-        fn read(&self) -> Option<bool>{
-            None
-        }
-
-    }
+        pub unsafe fn read(&self) -> Option<bool>{
+            match self.getMode().get() {
+                OUTPUT | INPUT => Some({
+                    let bank = BASE // base GPIO address
+                        + OUTPUT_LVL
+                        + if(self.id > 31){ 4 }else{ 0 }              // Second register if pin is in second bank
+                        ;
+                    let mask = 1 << (self.id % 32);
+                    
+                    if(0 == mask & read(bank)){
+                        false
+                    }else{
+                        true
+                    }
+                    }),
+                _ => None
+            } // match
+        } // read
+    } //impl Pin
 
 
     /// IO mode for GPIO pins
-    enum pin_mode{
+    #[repr(C)]
+    pub enum pin_mode{
         INPUT = 0,
         OUTPUT = 1,
         ALT0 = 4,
@@ -182,7 +220,7 @@ mod gpio{
         ALT5 = 2
     }
     impl pin_mode{
-        fn from_uint(x : uint) -> Option<pin_mode>{
+        pub fn from_uint(x : uint) -> Option<pin_mode>{
             match x {
                 0 => Some(INPUT),
                 1 => Some(OUTPUT),

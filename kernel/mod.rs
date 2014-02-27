@@ -41,10 +41,11 @@ pub fn main() {
 
     table.load();
     drivers::init();
-    unsafe {
+    // Not for RPi
+    /*unsafe {
         drivers::keydown = Some(sgash::parsekey);
         io::init(640, 480);
-    }
+    }*/
 }
 
 #[lang = "exchange_malloc"]
