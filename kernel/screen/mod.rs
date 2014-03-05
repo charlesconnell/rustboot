@@ -1,15 +1,7 @@
+/* kernel::serial */
+/* Serial API for UART devices */
 
-/* kernel::screen.rs */
-/* A basic screen model & drawing routines */
-/*pub mod depth{
-    pub type colorDepth = uint;
-
-    pub static black : colorDepth       = 0;
-    pub static bw : colorDepth          = 1;
-    pub static highcolor : colorDepth   = 16;
-    pub static truecolor : colorDepth   = 24;
-    pub static rgba : colorDepth        = 32;
-}*/
+pub mod font;
 
 //#[deriving(FromPrimative)]
 pub enum ColorDepth{
@@ -17,7 +9,7 @@ pub enum ColorDepth{
     BW = 1,
     HighColor = 16,
     TrueColor = 24,
-    RGBA = 32,
+    ARGB = 32,
 }
 
 impl ColorDepth{
@@ -26,12 +18,11 @@ impl ColorDepth{
             1   => BW,
             16  => HighColor,
             24  => TrueColor,
-            32  => RGBA,
+            32  => ARGB,
             _   => NoColor
         }
     }
 }
-
 
 pub struct Resolution {w : uint, h : uint}
 
@@ -83,9 +74,45 @@ pub mod Resolutions{
 }
 
 pub enum Pixel{
+    NoColorPixel(),
+    BWPixel(bool),
     HighColorPixel(u8, u8, u8),
     TrueColorPixel(u8, u8, u8),
-    RGBAPixel(u8,u8,u8,u8)
+    ARGBPixel(u8,u8,u8,u8)
+}
+
+impl Pixel{
+    pub fn new(c : ColorDepth) -> Pixel{
+        match c {
+            BWColor   => BWPixel(false),
+            /*HighColor  => HighColorPixel(0,0,0),
+            TrueColor  => TrueColorPixel(0,0,0),
+            ARGB  => ARGBPixel(0,0,0,0),
+            _   => NoColorPixel*/
+        }
+    }
+    // TODO : rgb as methods or as named properties
+    
+    pub fn word(&self) -> u32 {
+        match self {
+            &BWPixel(v)   => if v { -1 } else { 0 },
+            &HighColorPixel(r,g,b) => ((r & 31) as u32 << 11) | ((g & 63) as u32 << 5) | ((b & 31) as u32),
+            &TrueColorPixel(r,g,b) => (r as u32 << 16) | (g as u32 << 8) | (b as u32),
+            &ARGBPixel(a,r,g,b) => (a as u32 << 24) | (r as u32 << 16) | (g as u32 << 8) | (b as u32),
+            &NoColorPixel() => 0 as u32,
+        }
+
+    }
+}
+
+pub struct cursor{
+    x        : u32,
+    y        : u32,
+    height   : u32,
+    width    : u32,
+    cursor_color    : Pixel,
+    fg_color        : Pixel,
+    bg_color        : Pixel
 }
 
 pub trait ScreenCanvas{
@@ -93,13 +120,77 @@ pub trait ScreenCanvas{
     fn sync(&mut self) -> bool;
     /// Set Resolution. Returns actual Resolution available.
     fn setResolution(&mut self, Resolution) -> Resolution;
+    fn getResolution(&self) -> Resolution;
     /// Set color depth. Returns actual color depth available.
     fn setColorDepth(&mut self, ColorDepth) -> ColorDepth;
+    fn getColorDepth(&self) -> ColorDepth;
 
     fn drawPixel(&mut self, &Pixel, &(uint,uint)) -> bool;
 
-    fn flush(&mut self) -> bool;
+    fn clear(&mut self, c : &Pixel) -> bool{
+        let res = self.getResolution();
+        let mut i = 0;
+        let mut j = 0;
+        let mut ok = true;
+        while j < res.w
+        {
+            while i < res.h
+            {
+                ok = ok && self.drawPixel(c, &(i, j));
+            }
+        }
+        ok
+    }
 
     /// Check if the device is available
     fn ready(&mut self) -> bool;
 }
+
+
+
+pub trait TerminalCanvas : ScreenCanvas {
+    fn getCursor(&self) -> cursor;
+    fn setCursor(&mut self, &cursor) -> cursor;
+    unsafe fn scrollup(&mut self);
+    unsafe fn drawCharacter(&mut self, c : char) -> bool
+    {
+        let font_offset = (c as u8) - 0x20; // ' ' in ASCII
+        let res = self.getResolution();
+        let cursor = self.getCursor();
+        // TODO this was based on the 976 implementation - reevaluate validity
+        if cursor.x+(res.w as u32 *cursor.y) >= (res.w*res.h) as u32
+        {
+            self.scrollup();
+        }
+        let font_offset = (c as u8) - 0x20;
+        let map = self::font::bitmaps[font_offset];
+
+        let mut i = 0;
+        let mut j = 0;
+        let mut ok = true;
+        while j < cursor.height
+        {
+            while i < cursor.width
+            {
+                //let addr = START_ADDR + 4*(CURSOR.x + CURSOR_WIDTH - i + SCREEN_WIDTH*(CURSOR.y + j));
+                //let addr = START_ADDR + 4*(CURSOR.x + CURSOR_WIDTH + SCREEN_WIDTH*CURSOR.y) - 4*i + 4*SCREEN_WIDTH*j
+                let color : Pixel = 
+                    if ((map[j] >> 4*i) & 1) == 1
+                    {
+                        cursor.fg_color
+                    }
+                    else
+                    {
+                        cursor.bg_color
+                    };
+                ok = ok && self.drawPixel(&color, &((cursor.x + i) as uint, (cursor.y + j) as uint));
+                i += 1;
+            }
+            i = 0;
+            j += 1;
+        }
+        ok
+    }
+}
+
+

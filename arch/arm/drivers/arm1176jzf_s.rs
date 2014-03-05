@@ -1,4 +1,13 @@
-/* driver::arm1176jzf_s.rs */
+/* drivers::arm1176jzf_s.rs */
+
+pub fn init(){
+    unsafe{
+        let p = gpio::Pin::get(16).get();
+        p.setMode(gpio::OUTPUT);
+        p.write(false);
+    }
+
+}
 
 /// driver::arm1176jzf_s::mailman 
 /// used for GPU communication
@@ -64,68 +73,78 @@ pub mod screen{
     use kernel::screen::*;
     use super::mailman;
 
-struct screen_buffer_info{
-    /// requested / provided width of screen
-    width       : u32,
-    /// requested / provided width of screen
-    height      : u32,
-    v_width     : u32, 
-    v_height    : u32,
-    /// pitch between screen rows; provdided by graphics driver
-    pitch       : u32,
-    /// color depth. 16 for hicolor, 24 for truecolor, 32 for RGBA32
-    depth       : u32, 
-    /// x offset of display
-    x           : u32, 
-    /// y offset of screen
-    y           : u32, 
-    /// pointer to graphics area of memory
-    pointer     : *mut u32, 
-    /// Size of graphics buffer (bytes)
-    size        : u32  
-}
-
-impl ScreenCanvas for screen_buffer_info{
-    fn sync(&mut self) -> bool{
-        true
+    struct screen_buffer_info{
+        /// requested / provided width of screen
+        width       : u32,
+        /// requested / provided width of screen
+        height      : u32,
+        v_width     : u32, 
+        v_height    : u32,
+        /// pitch between screen rows; provdided by graphics driver
+        pitch       : u32,
+        /// color depth. 16 for hicolor, 24 for truecolor, 32 for RGBA32
+        depth       : u32, 
+        /// x offset of display
+        x           : u32, 
+        /// y offset of screen
+        y           : u32, 
+        /// pointer to graphics area of memory
+        pointer     : *mut u32, 
+        /// Size of graphics buffer (bytes)
+        size        : u32  
     }
 
-    fn setResolution(&mut self, res : Resolution) -> Resolution{
-        let prev = Resolution{w: self.width as uint, h :self.height as uint};
-        self.width      = res.w as u32;
-        self.height     = res.h as u32;
-        self.v_width    = res.w as u32;
-        self.v_height   = res.h as u32;
-        
-        if(!self.sync()){
-            self.width      = prev.w as u32;
-            self.height     = prev.h as u32;
-            self.v_width    = prev.w as u32;
-            self.v_height   = prev.h as u32;
-
-            self.sync();
+    impl ScreenCanvas for screen_buffer_info{
+        fn sync(&mut self) -> bool{
+            true
         }
-        Resolution{w :self.width as uint, h: self.height as uint}
-    }
 
-    fn setColorDepth(&mut self, newDepth : ColorDepth) -> ColorDepth{
-        let previous : u32 = self.depth;
-        self.depth = newDepth as u32;
-        if(!self.sync()){
-            self.depth = previous;
-            self.sync();
+        fn getResolution(&self) -> Resolution  
+        { 
+            Resolution{w: self.width as uint, h :self.height as uint} 
         }
-        return ColorDepth::from_uint(self.depth as uint);
+
+        fn setResolution(&mut self, res : Resolution) -> Resolution
+        {
+            let prev = self.getResolution();
+            self.width      = res.w as u32;
+            self.height     = res.h as u32;
+            self.v_width    = res.w as u32;
+            self.v_height   = res.h as u32;
+            
+            if(!self.sync()){
+                self.width      = prev.w as u32;
+                self.height     = prev.h as u32;
+                self.v_width    = prev.w as u32;
+                self.v_height   = prev.h as u32;
+
+                self.sync();
+            }
+            self.getResolution()
+        }
+
+        fn getColorDepth(&self) -> ColorDepth
+        {
+            ColorDepth::from_uint(self.depth as uint)
+        }
+
+        fn setColorDepth(&mut self, newDepth : ColorDepth) -> ColorDepth
+        {
+            let previous : u32 = self.depth;
+            self.depth = newDepth as u32;
+            if(!self.sync()){
+                self.depth = previous;
+                self.sync();
+            }
+            self.getColorDepth()
+        }
+
+        fn drawPixel(&mut self, color: &Pixel, coords : &(uint, uint)) -> bool{ false }
+
+        fn ready(&mut self) -> bool { true }
     }
 
-    fn drawPixel(&mut self, color: &Pixel, coords : &(uint, uint)) -> bool{ false }
-
-    fn flush(&mut self) -> bool { true }
-
-    fn ready(&mut self) -> bool { true }
-}
-
-    // Need screenbuf instance acquisition
+        // Need screenbuf instance acquisition
 }
 
 pub mod gpio{
@@ -205,7 +224,6 @@ pub mod gpio{
             } // match
         } // read
     } //impl Pin
-
 
     /// IO mode for GPIO pins
     #[repr(C)]

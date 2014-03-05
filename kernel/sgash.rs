@@ -5,40 +5,49 @@ use core::str::*;
 use core::option::{Some, Option, None}; // Match statement
 use core::iter::Iterator;
 use kernel::*;
-use super::super::platform::*;
+use kernel::screen::*;
 use kernel::memory::Allocator;
+use kernel::serial::*;
 
-pub static mut buffer: cstr = cstr {
+use super::super::platform::drivers::arm926ej_s;
+
+pub static uart : &mut Serial = &mut arm926ej_s::serial::UART0;
+pub static scr : &mut TerminalCanvas = &mut arm926ej_s::screen::Screen0;
+
+
+pub static mut buffer: cstr = cstr 
+{
 				p: 0 as *mut u8,
 				p_cstr_i: 0,
 				max: 0
 			      };
-pub fn putchar(key: char) {
-    unsafe {
-	/*
-	 * We need to include a blank asm call to prevent rustc
-	 * from optimizing this part out
-	 */
-	asm!("");
-	io::write_char(key, io::UART0);
+
+fn putstr(msg: &str) 
+{
+    for c in slice::iter(as_bytes(msg)) {
+    	uart.write(*c as char);
     }
 }
 
-fn putstr(msg: &str) {
+pub unsafe fn drawstr(msg: &str) 
+{
+    let old_fg = scr.getCursor().fg_color;
+    let mut x : u32 = 0x6699AAFF;
     for c in slice::iter(as_bytes(msg)) {
-	putchar(*c as char);
+        x = (x << 8) + (x >> 24); 
+        let mut cur = scr.getCursor();
+        cur.fg_color = screen::ARGBPixel(
+                    (x >> 24) as u8,
+                    (x >> 16) as u8,
+                    (x >> 8)  as u8,
+                    x       as u8
+            );
+        scr.setCursor(&cur);
+        drawchar(*c as char);
     }
-}
-
-pub unsafe fn drawstr(msg: &str) {
-    let mut old_fg = super::super::io::FG_COLOR;
-    let mut x: u32 = 0x6699AAFF;
-    for c in slice::iter(as_bytes(msg)) {
-	x = (x << 8) + (x >> 24); 
-	super::super::io::set_fg(x);
-	drawchar(*c as char);
-    }
-    super::super::io::set_fg(old_fg);
+    let mut cur = scr.getCursor();
+    cur.fg_color = old_fg;
+    scr.setCursor(&cur);
 }
 
 pub unsafe fn putcstr(s: cstr)
@@ -46,12 +55,13 @@ pub unsafe fn putcstr(s: cstr)
     let mut p = s.p as uint;
     while *(p as *char) != '\0'
     {
-	putchar(*(p as *char));
-	p += 1;
+        uart.write(*(p as *char));
+        p += 1;
     }
 }
 
-pub unsafe fn parsekey(x: char) {
+pub unsafe fn parsekey(x: char) 
+{
 	let x = x as u8;
 	// Set this to false to learn the keycodes of various keys!
 	// Key codes are printed backwards because life is hard
@@ -64,15 +74,15 @@ pub unsafe fn parsekey(x: char) {
 			}
 			127		=>	{ 
 				if (buffer.delete_char()) { 
-					putchar('');
-					putchar(' ');
-					putchar(''); 
+					uart.write('');
+					uart.write(' ');
+					uart.write(''); 
 					backspace();
 				}
 			}
 			_		=>	{ 
 				if (buffer.add_char(x)) { 
-					putchar(x as char);
+					uart.write(x as char);
 					drawchar(x as char);
 				}
 			}
@@ -85,39 +95,49 @@ pub unsafe fn parsekey(x: char) {
 
 unsafe fn drawchar(x: char)
 {
+    let res = scr.getResolution();
+    let mut cur = scr.getCursor();
 	if x == '\n' {
-		io::CURSOR_Y += io::CURSOR_HEIGHT;
-		io::CURSOR_X = 0u32;
+		cur.y += cur.height;
+		cur.x = 0;
+        scr.setCursor(&cur);
 		return;
 	}
 
-    io::restore();
-    io::draw_char(x);
-    io::CURSOR_X += io::CURSOR_WIDTH;
-    if io::CURSOR_X >= io::SCREEN_WIDTH {io::CURSOR_X -= io::SCREEN_WIDTH; io::CURSOR_Y += io::CURSOR_HEIGHT}
-    io::backup();
-    io::draw_cursor();
+    scr.restore();
+    scr.drawCharacter(x);
+    cur.x += cur.width;
+    if cur.x >= res.w as u32 
+    {
+        cur.x -= res.w as u32;
+        cur.y += cur.height;
+    }
+    scr.setCursor(&cur);
+    scr.backup();
+    scr.draw_cursor();
 }
 
 unsafe fn backspace()
 {
-    io::restore();
-    io::CURSOR_X -= io::CURSOR_WIDTH;
-    io::draw_char(' ');
-    io::backup();
-    io::draw_cursor();
+    scr.restore();
+    let mut cur = scr.getCursor();
+    cur.x -= cur.width;
+    scr.setCursor(&cur);
+    scr.drawCharacter(' ');
+    scr.backup();
+    scr.draw_cursor();
 }
 
 fn keycode(x: u8) {
 	let mut x = x;
 	while  x != 0 {
-		putchar((x%10+ ('0' as u8) ) as char);
+		uart.write((x%10+ ('0' as u8) ) as char);
 		x = x/10;
 	}
-	putchar(' ');
+	uart.write(' ');
 }
-fn screen() {
-	
+
+fn screen() {	
 	putstr(&"\n                                                               "); 
 	putstr(&"\n                                                               ");
 	putstr(&"\n                       7=..~$=..:7                             "); 

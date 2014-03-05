@@ -1,6 +1,6 @@
 pub fn range(lo: uint, hi: uint, it: |uint|) {
     let mut iter = lo;
-    while iter < hi {
+    while (iter < hi) {
         it(iter);
         iter += 1;
     }
@@ -27,11 +27,11 @@ pub fn to_str_bytes(num: int, radix: int, f: |u8|) {
         if deccum == 0 { break; }
     }
 
-    if neg {
+    if (neg) {
         f('-' as u8);
     }
 
-    while cur > 0 {
+    while (cur > 0) {
         cur -= 1;
         f(buf[cur]);
     }

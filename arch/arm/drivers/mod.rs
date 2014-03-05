@@ -5,10 +5,8 @@ use super::io;
 use core::option::{Option, None};
 use kernel;
 
-//use self::arm1176jzf_s::gpio::pin_mode::OUTPUT;
-use self::arm1176jzf_s::gpio;
-
 pub mod arm1176jzf_s;
+pub mod arm926ej_s;
 
 pub fn init() {
 
@@ -19,11 +17,7 @@ pub fn init() {
             t.enable(interrupt::IRQ, keypress);
         });
     }*/
-    unsafe{
-        let p = gpio::Pin::get(16).get();
-        p.setMode(gpio::OUTPUT);
-        p.write(false);
-    }
+    arm1176jzf_s::init();
 }
 
 pub static mut keydown: Option<extern unsafe fn(char)> = None;
@@ -32,7 +26,7 @@ pub static mut read_char: Option<extern fn()->char> = None;
 #[no_mangle]
 pub unsafe fn keypress() {
 	keydown.map(|f| {
-		let x = *io::UART0 as u8 as char;
+		let x = (*self::arm926ej_s::serial::UART0.base) as u8 as char;
 		f(x)
 	}
 	);

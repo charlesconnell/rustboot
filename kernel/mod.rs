@@ -1,10 +1,11 @@
 use core::option::{Option, Some, None};
 use core::fail::out_of_memory;
 
-use platform::{cpu, io, drivers};
+use platform::{cpu, drivers};
+//use platform::{io};
 use cpu::interrupt;
 
-use self::memory::virtual::PageDirectory;
+//use self::memory::virtual::PageDirectory;
 use self::memory::Allocator;
 
 pub mod int;
@@ -13,6 +14,7 @@ pub mod memory;
 pub mod sgash;
 
 pub mod screen;
+pub mod serial;
 
 #[cfg(target_word_size = "32")]
 pub mod rt;

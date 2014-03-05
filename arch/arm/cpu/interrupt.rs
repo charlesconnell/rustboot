@@ -3,8 +3,6 @@ use core::ptr::offset;
 
 use platform::io;
 
-static VIC_INT_ENABLE: *mut u32 = (0x10140000 + 0x010) as *mut u32;
-static UART0_IRQ: u8 = 12;
 static VT: *u32 = 0 as *u32;
 
 #[repr(u8)]
@@ -51,7 +49,7 @@ impl Table {
     pub fn load(&self) {
         let mut i = 0;
         while i < 10 {
-            // make every handler loop indefinitely
+            // Unless otherwise set, each handler is a trap - branch to self
             set_word(i, branch(0));
             i += 1;
         }
@@ -72,15 +70,7 @@ impl Table {
               msr cpsr, r0      // go back in Supervisor mode
               mov sp, r2"
             ::: "r0", "r1", "r2", "cpsr");
-
-            // enable UART0 IRQ [4]
-            *VIC_INT_ENABLE = 1 << UART0_IRQ;
-            // enable RXIM interrupt
-            /*
-             * See
-             * http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0183f/I54603.html
-             */
-            *io::UART0_IMSC = 1 << 4;
+            // Call arm976ej_s::serial::UART0.open(baud) to open
         }
     }
 }
