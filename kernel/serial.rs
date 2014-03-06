@@ -20,7 +20,7 @@ pub trait Serial{
     
     /// Read up to length bytes into buffer. Return number of bytes read.
     fn readBuf(&mut self, buffer : &mut u8, length : uint) -> uint;
-    fn readChar(&mut self, c : &mut char) -> uint;
+    fn read(&mut self, c : &mut char) -> uint;
 
     /// Write a single character. Return number of bytes written.
     fn write(&self, char) -> uint;

@@ -191,6 +191,11 @@ pub trait TerminalCanvas : ScreenCanvas {
         }
         ok
     }
+
+
+    unsafe fn backup(&mut self);
+    unsafe fn restore(&mut self);
+    unsafe fn drawCursor(&mut self);
 }
 
 

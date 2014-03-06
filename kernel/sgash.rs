@@ -4,16 +4,17 @@ use core::*;
 use core::str::*;
 use core::option::{Some, Option, None}; // Match statement
 use core::iter::Iterator;
+use core::mem::transmute;
 use kernel::*;
 use kernel::screen::*;
 use kernel::memory::Allocator;
 use kernel::serial::*;
 
 use super::super::platform::drivers::arm926ej_s;
+use super::super::platform::drivers::arm926ej_s::serial;
 
-pub static uart : &mut Serial = &mut arm926ej_s::serial::UART0;
-pub static scr : &mut TerminalCanvas = &mut arm926ej_s::screen::Screen0;
-
+pub static uart : &'static mut Serial = &'static mut arm926ej_s::serial::UART0 as &'static mut Serial;
+pub static scr : &'static mut TerminalCanvas = &'static mut arm926ej_s::screen::Screen0 as &'static mut TerminalCanvas;
 
 pub static mut buffer: cstr = cstr 
 {
@@ -114,7 +115,7 @@ unsafe fn drawchar(x: char)
     }
     scr.setCursor(&cur);
     scr.backup();
-    scr.draw_cursor();
+    scr.drawCursor();
 }
 
 unsafe fn backspace()
@@ -125,10 +126,11 @@ unsafe fn backspace()
     scr.setCursor(&cur);
     scr.drawCharacter(' ');
     scr.backup();
-    scr.draw_cursor();
+    scr.drawCursor();
 }
 
-fn keycode(x: u8) {
+fn keycode(x: u8) 
+{
 	let mut x = x;
 	while  x != 0 {
 		uart.write((x%10+ ('0' as u8) ) as char);
@@ -183,6 +185,10 @@ fn screen() {
 }
 
 pub unsafe fn init() {
+    uart = &'static mut arm926ej_s::serial::UART0 as &'static mut Serial;
+    scr =  &'static mut arm926ej_s::screen::Screen0 as &'static mut TerminalCanvas;
+
+
     buffer = cstr::new(256);
     screen();
     prompt(true);

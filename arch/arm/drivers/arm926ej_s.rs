@@ -1,12 +1,10 @@
 /* drivers::arm926ej_s */
 
 use core::option::Some;
-use core::mem::{volatile_load, volatile_store};
-use kernel::sgash;
-use kernel;
 use platform::cpu::interrupt;
-use kernel::serial;
-use kernel::screen;
+use kernel;
+use kernel::{serial, screen, sgash};
+use kernel::screen::*;
 
 /* http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0225d/BBABEGGE.html */
 /* http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0225d/BBABEGGE.html */
@@ -200,11 +198,8 @@ pub mod screen
             }
             true
         }
-    }
-
-    impl canvas
-    {
-        pub unsafe fn backup(&mut self)
+        
+        unsafe fn backup(&mut self)
         {
             let mut i = 0;
             let mut j = 0;
@@ -223,7 +218,7 @@ pub mod screen
             self.SAVE_Y = self.CURSOR.y;
         }
 
-        pub unsafe fn restore(&mut self)
+        unsafe fn restore(&mut self)
         {
             let mut i = 0;
             let mut j = 0;
@@ -240,7 +235,7 @@ pub mod screen
             }
         }
 
-        pub unsafe fn draw_cursor(&mut self)
+        unsafe fn drawCursor(&mut self)
         {
             let mut i = 0;
             let mut j = 0;
@@ -259,6 +254,10 @@ pub mod screen
 
         }
 
+    }
+
+    impl canvas
+    {
         pub unsafe fn paint(&mut self, color: u32)
         {
             let mut i = 0; 
@@ -301,13 +300,13 @@ pub unsafe fn init(width: u32, height: u32)
     cv.set_cursor_color(kernel::screen::ARGBPixel(0x00, 0xFA, 0xFC, 0xFF));
     cv.fill_bg();
     sgash::drawstr(&"sgash > ");
-    cv.draw_cursor();
+    cv.drawCursor();
 }
 
 pub mod serial
 {
     use kernel::serial::*;
-
+    use core::mem::{volatile_load, volatile_store};
     struct UART{
         base : *mut u32,
         IMSC : *mut u32,
@@ -320,7 +319,7 @@ pub mod serial
         IMSC :  (0x101f1000 + 0x038) as *mut u32,
         IRQ : 12,
         /* TODO receive handlers */
-        baud : 0
+        rate : 0,
     }; 
 
     impl Serial for UART{
@@ -343,13 +342,13 @@ pub mod serial
 
         fn isOpen(&self) -> bool
         {
-            self.baud == 0
+            self.rate == 0
         }
 
         /// End transmission, close device. Returns true if device is closed after operation.
         fn close(&mut self) -> bool
         {
-            self.baud = 0;
+            self.rate = 0;
             true
         }
 
@@ -360,13 +359,19 @@ pub mod serial
         }
         
         /// Read up to length bytes into buffer. Return number of bytes read.
-        fn read(&self, buffer : &mut u8, length : uint) -> uint
+        fn readBuf(&mut self, buffer : &mut u8, length : uint) -> uint
+        {
+            0
+        }
+
+        /// Read one character into buffer. Return number of bytes read.
+        fn read(&mut self, c : &mut char) -> uint
         {
             0
         }
 
         /// Write a single byte. Return number of bytes written.
-        fn write(&mut self, c : char) -> uint
+        fn write(&self, c : char) -> uint
         {
             unsafe {
                 /*
@@ -402,5 +407,4 @@ pub mod serial
             ()
         }
     }
-
 }
