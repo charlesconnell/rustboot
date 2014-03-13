@@ -15,6 +15,7 @@ pub mod sgash;
 
 pub mod screen;
 pub mod serial;
+pub mod shell;
 
 #[cfg(target_word_size = "32")]
 pub mod rt;
@@ -32,7 +33,8 @@ pub static mut int_table: Option<interrupt::Table> = None;
 
 #[lang="start"]
 #[no_mangle]
-pub fn main() {
+pub fn main() 
+{
     memory::BuddyAlloc::new(17, memory::Bitv { storage: 0x100_000 as memory::BitvStorage });
     memory::physical::init();
     let table = interrupt::Table::new();
@@ -52,7 +54,8 @@ pub fn main() {
 
 #[lang = "exchange_malloc"]
 #[inline]
-pub unsafe fn malloc_raw(size: uint) -> *mut u8 {
+pub unsafe fn malloc_raw(size: uint) -> *mut u8 
+{
     if size == 0 {
         0 as *mut u8
     }
@@ -67,12 +70,14 @@ pub unsafe fn malloc_raw(size: uint) -> *mut u8 {
 
 #[lang = "exchange_free"]
 #[inline]
-pub unsafe fn free(ptr: *mut u8) {
+pub unsafe fn free(ptr: *mut u8) 
+{
     heap.free(ptr);
 }
 
 #[inline]
-pub unsafe fn zero_alloc(size: uint) -> *mut u8 {
+pub unsafe fn zero_alloc(size: uint) -> *mut u8 
+{
     if size == 0 {
         0 as *mut u8
     }
@@ -86,7 +91,8 @@ pub unsafe fn zero_alloc(size: uint) -> *mut u8 {
 }
 
 #[inline]
-pub unsafe fn realloc_raw(ptr: *mut u8, size: uint) -> *mut u8 {
+pub unsafe fn realloc_raw(ptr: *mut u8, size: uint) -> *mut u8 
+{
     if size == 0 {
         free(ptr);
         0 as *mut u8

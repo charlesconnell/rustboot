@@ -1,5 +1,5 @@
 arch=arm
-RUST_ROOT := /usr
+RUST_ROOT := /usr/local
 LLVM_ROOT := /usr
 GCC_PREFIX := /usr/bin/
 

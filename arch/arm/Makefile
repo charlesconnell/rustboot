@@ -7,7 +7,8 @@ rpi: CHIP := arm1176jzf-s
 GCC_PREFIX := $(GCC_PREFIX)arm-none-eabi-
 
 RUSTC := $(RUST_ROOT)/bin/rustc
-RUSTCFLAGS := -O --target $(TARGET) -Z no-landing-pads -Z debug-info -Z extra-debug-info --cfg $(CHIP)
+#RUSTCFLAGS := -O --target $(TARGET) -Z no-landing-pads -Z debug-info -Z extra-debug-info --cfg $(CHIP)
+RUSTCFLAGS := -O --target $(TARGET) -Z no-landing-pads --cfg $(CHIP)
 
 AS := $(GCC_PREFIX)as
 LD := $(GCC_PREFIX)ld
@@ -53,7 +54,8 @@ $(BDIR)/core.bc: $(LCORE)
 
 # Compile rustboot
 $(BDIR)/main.bc: ../../lib.rs $(MODS) $(LCORE)
-	$(RUSTC) $(RUSTCFLAGS) --dep-info $(@D)/main.d -L $(BDIR) --emit-llvm ../../lib.rs --out-dir $(BDIR)
+	$(RUSTC) $(RUSTCFLAGS) --dep-info $(@D)/main.d -L $(BDIR) ../../lib.rs --out-dir $(BDIR)
+#	$(RUSTC) $(RUSTCFLAGS) --dep-info $(@D)/main.d -L $(BDIR) --emit-llvm ../../lib.rs --out-dir $(BDIR)
 
 %.s: %.bc
 	$(LLC) $(LLCFLAGS) $^ -o $@

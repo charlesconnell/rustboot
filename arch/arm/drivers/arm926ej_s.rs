@@ -1,10 +1,13 @@
 /* drivers::arm926ej_s */
 
-use core::option::Some;
+use core::option::{Some, None};
+use core::mem;
 use platform::cpu::interrupt;
 use kernel;
 use kernel::{serial, screen, sgash};
 use kernel::screen::*;
+use kernel::sgash::SGASH;
+use core::mem::transmute;
 
 /* http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0225d/BBABEGGE.html */
 /* http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0225d/BBABEGGE.html */
@@ -60,9 +63,9 @@ pub mod screen
         {
             self.SCREEN_WIDTH = res.w as u32;
             self.SCREEN_HEIGHT = res.h as u32;
-            unsafe {
+            /*unsafe {
                 sgash::init()
-            };
+            };*/
             /* For the following magic values, see 
              * http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0225d/CACHEDGD.html
              */
@@ -79,7 +82,7 @@ pub mod screen
                     
                     /* See http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0161e/I911024.html */
                     ws(0x10120018, 0x82B);
-                },/*
+                },
                 VGA => unsafe {
                     // 640x480
                     // See http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0225d/CACCCFBF.html
@@ -94,7 +97,8 @@ pub mod screen
                     /* See http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0161e/I911024.html */
                     ws(0x10120018, 0x82B);
                 },
-                _ => abort() */
+                _ => abort() 
+                    //*/
             } // match resolution                
 
             self.getResolution()
@@ -292,20 +296,27 @@ pub mod screen
 }
 
 
-pub unsafe fn init(width: u32, height: u32)
+pub unsafe fn init(r : Resolution)
 {
     let cv = screen::Screen0;
+    cv.setResolution(r);
     cv.set_bg(kernel::screen::ARGBPixel(0x00, 0x22, 0x2C, 0x38));
     cv.set_fg(kernel::screen::ARGBPixel(0x00, 0xFA, 0xFC, 0xFF));
     cv.set_cursor_color(kernel::screen::ARGBPixel(0x00, 0xFA, 0xFC, 0xFF));
     cv.fill_bg();
-    sgash::drawstr(&"sgash > ");
-    cv.drawCursor();
+
+    let size : uint = mem::size_of::<SGASH>();
+    let shell : &mut kernel::shell::Shell = transmute(kernel::malloc_raw(size));
+    shell.attachToScreen(&screen::Screen0);
+    shell.attachToSerial(&serial::UART0);
 }
 
 pub mod serial
 {
     use kernel::serial::*;
+    use kernel;
+    use platform::cpu::interrupt;
+
     use core::mem::{volatile_load, volatile_store};
     struct UART{
         base : *mut u32,
@@ -336,6 +347,9 @@ pub mod serial
                  * http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0183f/I54603.html
                  */
                 *self.IMSC = 1 << 4;
+                kernel::int_table.map(|t| {
+                    t.enable(interrupt::IRQ, UART0_receiveInterrupt);
+                });
             }
             false
         }
@@ -406,5 +420,14 @@ pub mod serial
         {
             ()
         }
+    }
+   
+#[no_mangle]
+    fn UART0_receiveInterrupt() 
+    {
+        let x = (*UART0.base) as u8 as char;
+        asm!("  pop {r11, lr}
+                subs pc, r14, #4") // pc = lr - 4
+
     }
 }

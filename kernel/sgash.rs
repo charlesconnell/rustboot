@@ -10,227 +10,327 @@ use kernel::screen::*;
 use kernel::memory::Allocator;
 use kernel::serial::*;
 
-use super::super::platform::drivers::arm926ej_s;
-use super::super::platform::drivers::arm926ej_s::serial;
+use kernel::shell::*;
 
-pub static uart : &'static mut Serial = &'static mut arm926ej_s::serial::UART0 as &'static mut Serial;
-pub static scr : &'static mut TerminalCanvas = &'static mut arm926ej_s::screen::Screen0 as &'static mut TerminalCanvas;
+//use super::super::platform::drivers::arm926ej_s;
+//use super::super::platform::drivers::arm926ej_s::serial;
 
-pub static mut buffer: cstr = cstr 
-{
-				p: 0 as *mut u8,
-				p_cstr_i: 0,
-				max: 0
-			      };
+// TODO Make useable for non-static-lifetime'd variables.
 
-fn putstr(msg: &str) 
-{
-    for c in slice::iter(as_bytes(msg)) {
-    	uart.write(*c as char);
-    }
+pub struct SGASH{
+    buffer : cstr,
+    serial : Option<&'static Serial>,
+    screen : Option<&'static TerminalCanvas>
 }
 
-pub unsafe fn drawstr(msg: &str) 
+// TODO a proper impl
+impl Shell for SGASH
 {
-    let old_fg = scr.getCursor().fg_color;
-    let mut x : u32 = 0x6699AAFF;
-    for c in slice::iter(as_bytes(msg)) {
-        x = (x << 8) + (x >> 24); 
-        let mut cur = scr.getCursor();
-        cur.fg_color = screen::ARGBPixel(
-                    (x >> 24) as u8,
-                    (x >> 16) as u8,
-                    (x >> 8)  as u8,
-                    x       as u8
-            );
-        scr.setCursor(&cur);
-        drawchar(*c as char);
-    }
-    let mut cur = scr.getCursor();
-    cur.fg_color = old_fg;
-    scr.setCursor(&cur);
-}
-
-pub unsafe fn putcstr(s: cstr)
-{
-    let mut p = s.p as uint;
-    while *(p as *char) != '\0'
+    fn init(&mut self)
     {
-        uart.write(*(p as *char));
-        p += 1;
+        unsafe{
+            self.buffer = cstr::new(256);
+        }
+        self.serial = None;
+        self.screen = None;
     }
-}
 
-pub unsafe fn parsekey(x: char) 
-{
-	let x = x as u8;
-	// Set this to false to learn the keycodes of various keys!
-	// Key codes are printed backwards because life is hard
-		
-	if (true) {
-		match x { 
-			13		=>	{ 
-						parse();
-						prompt(false); 
-			}
-			127		=>	{ 
-				if (buffer.delete_char()) { 
-					uart.write('');
-					uart.write(' ');
-					uart.write(''); 
-					backspace();
-				}
-			}
-			_		=>	{ 
-				if (buffer.add_char(x)) { 
-					uart.write(x as char);
-					drawchar(x as char);
-				}
-			}
-		}
-	}
-	else {
-		keycode(x);
-	}
-}
-
-unsafe fn drawchar(x: char)
-{
-    let res = scr.getResolution();
-    let mut cur = scr.getCursor();
-	if x == '\n' {
-		cur.y += cur.height;
-		cur.x = 0;
-        scr.setCursor(&cur);
-		return;
-	}
-
-    scr.restore();
-    scr.drawCharacter(x);
-    cur.x += cur.width;
-    if cur.x >= res.w as u32 
+    fn attachToSerial(&mut self, s : &'static Serial) -> bool
     {
-        cur.x -= res.w as u32;
-        cur.y += cur.height;
+        match self.serial 
+        {
+            Some(uart) => false,
+            _ => {
+                let mut success = true;
+                self.serial = Some(s);
+                success = success && s.open(9600);
+                success = success && s.addReceiveHandler(|c| {
+                    self.input(c);
+                });
+                success
+            }
+        }
     }
-    scr.setCursor(&cur);
-    scr.backup();
-    scr.drawCursor();
+    
+    fn attachToScreen(&mut self, s : &'static TerminalCanvas) -> bool
+    {
+        match self.screen
+        {
+            Some(scr) => false,
+            _ => {
+                self.screen = Some(s);
+                self.splash();
+                true
+            }
+        }
+    }
+    
+    fn input(&self, x : char) -> bool
+    {
+        let c = x as u8;
+        // Set this to false to learn the keycodes of various keys!
+        // Key codes are printed backwards because life is hard
+            
+        if (true) {
+            match c { 
+                13		=>	unsafe { 
+                            self.parse();
+                            self.prompt(false); 
+                },
+                127		=>	unsafe { 
+                    if (self.buffer.delete_char()) { 
+                        self.txStr(&"^H ^H");
+                        self.backspace();
+                    }
+                },
+                _		=>	unsafe{ 
+                    if (self.buffer.add_char(c)) { 
+                        //self.txChar(c as char);
+                        self.drawchar(c as char);
+                    }
+                },
+            }
+        }
+        else {
+            self.keycode(x as u8);
+        }
+    	true
+    }
+    
+    fn output(&self, s : &str) -> bool
+    {
+        self.drawStr(s);
+        self.txStr(s);
+        // TODO call outputHandlers
+    	true
+    }
+   
+    // TODO implement
+    fn addInputHandler(&mut self, ih : shellInputHandler) -> bool
+    {
+    	false
+    }
+    
+    fn addOutputHandler(&mut self, oh : shellOutputHandler) -> bool
+    {
+    	false
+    }
 }
 
-unsafe fn backspace()
+impl SGASH
 {
-    scr.restore();
-    let mut cur = scr.getCursor();
-    cur.x -= cur.width;
-    scr.setCursor(&cur);
-    scr.drawCharacter(' ');
-    scr.backup();
-    scr.drawCursor();
-}
+    fn txChar(&self, x : char)
+    {
+        match self.serial
+        {
+            Some(uart) => uart.write(x),
+            _ => 0,
+        };
 
-fn keycode(x: u8) 
-{
-	let mut x = x;
-	while  x != 0 {
-		uart.write((x%10+ ('0' as u8) ) as char);
-		x = x/10;
-	}
-	uart.write(' ');
-}
+    }
+    fn txStr(&self, msg: &str)
+    {
+        match self.serial
+        {
+            Some(uart) => for c in slice::iter(as_bytes(msg)) {
+            	uart.write(*c as char);
+            },
+            _ => ()
+        }
+    }
 
-fn screen() {	
-	putstr(&"\n                                                               "); 
-	putstr(&"\n                                                               ");
-	putstr(&"\n                       7=..~$=..:7                             "); 
-	putstr(&"\n                  +$: =$$$+$$$?$$$+ ,7?                        "); 
-	putstr(&"\n                  $$$$$$$$$$$$$$$$$$Z$$                        ");
-	putstr(&"\n              7$$$$$$$$$$$$. .Z$$$$$Z$$$$$$                    ");
-	putstr(&"\n           ~..7$$Z$$$$$7+7$+.?Z7=7$$Z$$Z$$$..:                 ");
-	putstr(&"\n          ~$$$$$$$$7:     :ZZZ,     :7ZZZZ$$$$=                ");
-	putstr(&"\n           Z$$$$$?                    .+ZZZZ$$                 ");
-	putstr(&"\n       +$ZZ$$$Z7                         7ZZZ$Z$$I.            "); 
-	putstr(&"\n        $$$$ZZZZZZZZZZZZZZZZZZZZZZZZI,    ,ZZZ$$Z              "); 
-	putstr(&"\n      :+$$$$ZZZZZZZZZZZZZZZZZZZZZZZZZZZ=    $ZZ$$+~,           "); 
-	putstr(&"\n     ?$Z$$$$ZZZZZZZZZZZZZZZZZZZZZZZZZZZZI   7ZZZ$ZZI           "); 
-	putstr(&"\n      =Z$$+7Z$$7ZZZZZZZZ$$$$$$$ZZZZZZZZZZ  ~Z$?$ZZ?            ");	 
-	putstr(&"\n    :$Z$Z...$Z  $ZZZZZZZ~       ~ZZZZZZZZ,.ZZ...Z$Z$~          "); 
-	putstr(&"\n    7ZZZZZI$ZZ  $ZZZZZZZ~       =ZZZZZZZ7..ZZ$?$ZZZZ$          "); 
-	putstr(&"\n      ZZZZ$:    $ZZZZZZZZZZZZZZZZZZZZZZ=     ~$ZZZ$:           "); 
-	putstr(&"\n    7Z$ZZ$,     $ZZZZZZZZZZZZZZZZZZZZ7         ZZZ$Z$          "); 
-	putstr(&"\n   =ZZZZZZ,     $ZZZZZZZZZZZZZZZZZZZZZZ,       ZZZ$ZZ+         "); 
-	putstr(&"\n     ,ZZZZ,     $ZZZZZZZ:     =ZZZZZZZZZ     ZZZZZ$:           "); 
-	putstr(&"\n    =$ZZZZ+     ZZZZZZZZ~       ZZZZZZZZ~   =ZZZZZZZI          "); 
-	putstr(&"\n    $ZZ$ZZZ$$Z$$ZZZZZZZZZ$$$$   IZZZZZZZZZ$ZZZZZZZZZ$          "); 
-	putstr(&"\n      :ZZZZZZZZZZZZZZZZZZZZZZ   ~ZZZZZZZZZZZZZZZZZ~            "); 
-	putstr(&"\n     ,Z$$ZZZZZZZZZZZZZZZZZZZZ    ZZZZZZZZZZZZZZZZZZ~           "); 
-	putstr(&"\n     =$ZZZZZZZZZZZZZZZZZZZZZZ     $ZZZZZZZZZZZZZZZ$+           "); 
-	putstr(&"\n        IZZZZZ:.                        . ,ZZZZZ$              "); 
-	putstr(&"\n       ~$ZZZZZZZZZZZ                 ZZZZ$ZZZZZZZ+             "); 
-	putstr(&"\n           Z$ZZZ. ,Z~               =Z:.,ZZZ$Z                 "); 
-	putstr(&"\n          ,ZZZZZ..~Z$.             .7Z:..ZZZZZ:                ");
-	putstr(&"\n          ~7+:$ZZZZZZZZI=:.   .,=IZZZZZZZ$Z:=7=                ");
-	putstr(&"\n              $$ZZZZZZZZZZZZZZZZZZZZZZ$ZZZZ                    ");
-	putstr(&"\n              ==..$ZZZ$ZZZZZZZZZZZ$ZZZZ .~+                    "); 			
-	putstr(&"\n                  I$?.?ZZZ$ZZZ$ZZZI =$7                        ");
-	putstr(&"\n                       $7..I$7..I$,                            ");
-	putstr(&"\n"); 
-	putstr(&"\n _                     _     _                         _  ");
-	putstr(&"\n| |                   (_)   | |                       | | ");
-	putstr(&"\n| | ____ ___  ____     _____| |_____  ____ ____  _____| | ");
-	putstr(&"\n| |/ ___) _ \\|  _ \\   |  _   _) ___ |/ ___)  _ \\| ___ | | ");
-	putstr(&"\n| | |  | |_| | | | |  | |  \\ \\| ____| |   | | | | ____| | ");
-	putstr(&"\n|_|_|  \\____/|_| |_|  |_|   \\_\\_____)_|   |_| |_|_____)__)\n\n");
+    fn txCstr(&self, s: cstr)
+    {
+        match self.serial
+        {
+            Some(uart) => unsafe {
+                let mut p = s.p as uint;
+                while *(p as *char) != '\0'
+                {
+                    uart.write(*(p as *char));
+                    p += 1;
+                }
+            },
+            _ => {}
+        }
+    }
 
-}
+    fn drawStr(&self, msg: &str)
+    {
+        match self.screen
+        {
+            Some(scr) => {
+                // TODO Why the awkward color changing thing going on here?
+                // Just to indicate what function it's going through?
+                let old_fg = scr.getCursor().fg_color;
+                let mut x : u32 = 0x6699AAFF;
+                for c in slice::iter(as_bytes(msg)) {
+                    x = (x << 8) + (x >> 24); 
+                    let mut cur = scr.getCursor();
+                    cur.fg_color = screen::ARGBPixel(
+                                (x >> 24) as u8,
+                                (x >> 16) as u8,
+                                (x >> 8)  as u8,
+                                x       as u8
+                        );
+                    scr.setCursor(&cur);
+                    self.drawchar(*c as char);
+                }
+                let mut cur = scr.getCursor();
+                cur.fg_color = old_fg;
+                scr.setCursor(&cur);
+            },
+            _ => ()
+        }
+    }
 
-pub unsafe fn init() {
-    uart = &'static mut arm926ej_s::serial::UART0 as &'static mut Serial;
-    scr =  &'static mut arm926ej_s::screen::Screen0 as &'static mut TerminalCanvas;
+    fn drawchar(&self, x: char)
+    {
+        match self.screen
+        {
+            Some(scr) => {
+                let res = scr.getResolution();
+                let mut cur = scr.getCursor();
+                if x == '\n' {
+                    cur.y += cur.height;
+                    cur.x = 0;
+                    scr.setCursor(&cur);
+                    return;
+                } else if x == '\t' {
+                    cur.x += cur.width * 4;
+                    if cur.x >= res.w as u32 
+                    {
+                        cur.x -= res.w as u32;
+                        cur.y += cur.height;
+                    }
+                    scr.setCursor(&cur);
+                    return;
+                }
+                unsafe{
+                    scr.restore();
 
+                    scr.drawCharacter(x);
+                    cur.x += cur.width;
+                    if cur.x >= res.w as u32 
+                    {
+                        cur.x -= res.w as u32;
+                        cur.y += cur.height;
+                    }
+                    scr.setCursor(&cur);
+                    scr.backup();
+                    scr.drawCursor();
+                }
+            },
+            _ => ()
+        }
+    }
+    
+    fn backspace(&self)
+    {
+        match self.screen 
+        {
+            Some(scr) => {
+                scr.restore();
+                let mut cur = scr.getCursor();
+                cur.x -= cur.width;
+                scr.setCursor(&cur);
+                scr.drawCharacter(' ');
+                scr.backup();
+                scr.drawCursor();
+            },
+            None => ()
+        }
+    }
 
-    buffer = cstr::new(256);
-    screen();
-    prompt(true);
-}
+    fn splash(&self) 
+    {	
+        self.output(&"\n                                                               "); 
+        self.output(&"\n                                                               ");
+        self.output(&"\n                       7=..~$=..:7                             "); 
+        self.output(&"\n                  +$: =$$$+$$$?$$$+ ,7?                        "); 
+        self.output(&"\n                  $$$$$$$$$$$$$$$$$$Z$$                        ");
+        self.output(&"\n              7$$$$$$$$$$$$. .Z$$$$$Z$$$$$$                    ");
+        self.output(&"\n           ~..7$$Z$$$$$7+7$+.?Z7=7$$Z$$Z$$$..:                 ");
+        self.output(&"\n          ~$$$$$$$$7:     :ZZZ,     :7ZZZZ$$$$=                ");
+        self.output(&"\n           Z$$$$$?                    .+ZZZZ$$                 ");
+        self.output(&"\n       +$ZZ$$$Z7                         7ZZZ$Z$$I.            "); 
+        self.output(&"\n        $$$$ZZZZZZZZZZZZZZZZZZZZZZZZI,    ,ZZZ$$Z              "); 
+        self.output(&"\n      :+$$$$ZZZZZZZZZZZZZZZZZZZZZZZZZZZ=    $ZZ$$+~,           "); 
+        self.output(&"\n     ?$Z$$$$ZZZZZZZZZZZZZZZZZZZZZZZZZZZZI   7ZZZ$ZZI           "); 
+        self.output(&"\n      =Z$$+7Z$$7ZZZZZZZZ$$$$$$$ZZZZZZZZZZ  ~Z$?$ZZ?            ");	 
+        self.output(&"\n    :$Z$Z...$Z  $ZZZZZZZ~       ~ZZZZZZZZ,.ZZ...Z$Z$~          "); 
+        self.output(&"\n    7ZZZZZI$ZZ  $ZZZZZZZ~       =ZZZZZZZ7..ZZ$?$ZZZZ$          "); 
+        self.output(&"\n      ZZZZ$:    $ZZZZZZZZZZZZZZZZZZZZZZ=     ~$ZZZ$:           "); 
+        self.output(&"\n    7Z$ZZ$,     $ZZZZZZZZZZZZZZZZZZZZ7         ZZZ$Z$          "); 
+        self.output(&"\n   =ZZZZZZ,     $ZZZZZZZZZZZZZZZZZZZZZZ,       ZZZ$ZZ+         "); 
+        self.output(&"\n     ,ZZZZ,     $ZZZZZZZ:     =ZZZZZZZZZ     ZZZZZ$:           "); 
+        self.output(&"\n    =$ZZZZ+     ZZZZZZZZ~       ZZZZZZZZ~   =ZZZZZZZI          "); 
+        self.output(&"\n    $ZZ$ZZZ$$Z$$ZZZZZZZZZ$$$$   IZZZZZZZZZ$ZZZZZZZZZ$          "); 
+        self.output(&"\n      :ZZZZZZZZZZZZZZZZZZZZZZ   ~ZZZZZZZZZZZZZZZZZ~            "); 
+        self.output(&"\n     ,Z$$ZZZZZZZZZZZZZZZZZZZZ    ZZZZZZZZZZZZZZZZZZ~           "); 
+        self.output(&"\n     =$ZZZZZZZZZZZZZZZZZZZZZZ     $ZZZZZZZZZZZZZZZ$+           "); 
+        self.output(&"\n        IZZZZZ:.                        . ,ZZZZZ$              "); 
+        self.output(&"\n       ~$ZZZZZZZZZZZ                 ZZZZ$ZZZZZZZ+             "); 
+        self.output(&"\n           Z$ZZZ. ,Z~               =Z:.,ZZZ$Z                 "); 
+        self.output(&"\n          ,ZZZZZ..~Z$.             .7Z:..ZZZZZ:                ");
+        self.output(&"\n          ~7+:$ZZZZZZZZI=:.   .,=IZZZZZZZ$Z:=7=                ");
+        self.output(&"\n              $$ZZZZZZZZZZZZZZZZZZZZZZ$ZZZZ                    ");
+        self.output(&"\n              ==..$ZZZ$ZZZZZZZZZZZ$ZZZZ .~+                    "); 			
+        self.output(&"\n                  I$?.?ZZZ$ZZZ$ZZZI =$7                        ");
+        self.output(&"\n                       $7..I$7..I$,                            ");
+        self.output(&"\n"); 
+        self.output(&"\n _                     _     _                         _  ");
+        self.output(&"\n| |                   (_)   | |                       | | ");
+        self.output(&"\n| | ____ ___  ____     _____| |_____  ____ ____  _____| | ");
+        self.output(&"\n| |/ ___) _ \\|  _ \\   |  _   _) ___ |/ ___)  _ \\| ___ | | ");
+        self.output(&"\n| | |  | |_| | | | |  | |  \\ \\| ____| |   | | | | ____| | ");
+        self.output(&"\n|_|_|  \\____/|_| |_|  |_|   \\_\\_____)_|   |_| |_|_____)__)\n\n");
+    }
+    
+    fn prompt(&self, startup: bool) 
+    {
+        self.output(&"\nsgash > ");
+        self.buffer.reset();
+    }
 
-unsafe fn prompt(startup: bool) {
-	putstr(&"\nsgash > ");
-	if !startup {drawstr(&"\nsgash > ");}
+    fn parse(&self) 
+    {
+        if (self.buffer.streq(&"ls")) { 
+            self.output( &"\na\tb");
+        };
+        match self.buffer.getarg(' ', 0) {
+            Some(y)        => {
+                if(y.streq(&"cat")) {
+                    match self.buffer.getarg(' ', 1) {
+                    Some(x)        => {
+                        if(x.streq(&"a")) { 
+                            self.output( &"\nHello"); 
+                        }
+                        if(x.streq(&"b")) {
+                            self.output( &"\nworld!");
+                        }
+                    }
+                    None        => { }
+                    };
+                }
+                if(y.streq(&"open")) {
+                    self.output(&"\nTEST YO");
+                }
+            }
+            None        => { }
+        };
+        self.buffer.reset();
+    }
 
-	buffer.reset();
-}
-
-unsafe fn parse() {
-	if (buffer.streq(&"ls")) { 
-	    putstr( &"\na\tb") ;
-	    drawstr( &"\na    b") ;
-	};
-	match buffer.getarg(' ', 0) {
-	    Some(y)        => {
-		if(y.streq(&"cat")) {
-		    match buffer.getarg(' ', 1) {
-			Some(x)        => {
-			    if(x.streq(&"a")) { 
-				putstr( &"\nHello"); 
-				drawstr( &"\nHello"); 
-			    }
-			    if(x.streq(&"b")) {
-				putstr( &"\nworld!");
-				drawstr( &"\nworld!");
-			    }
-			}
-			None        => { }
-		    };
-		}
-		if(y.streq(&"open")) {
-		    putstr(&"\nTEST YO");
-		    drawstr(&"\nTEST YO");
-		}
-	    }
-	    None        => { }
-	};
-	buffer.reset();
+    fn keycode(&self, x: u8) 
+    {
+        let mut x = x;
+        while  x != 0 {
+            self.txChar((x%10+ ('0' as u8) ) as char);
+            x = x/10;
+        }
+        self.txChar(' ');
+    }
 }
 
 /* BUFFER MODIFICATION FUNCTIONS */
@@ -242,7 +342,8 @@ struct cstr {
 }
 
 impl cstr {
-	pub unsafe fn new(size: uint) -> cstr {
+	pub unsafe fn new(size: uint) -> cstr 
+    {
 		// Sometimes this doesn't allocate enough memory and gets stuck...
 		let (x, y) = heap.alloc(size);
 		let this = cstr {
@@ -254,7 +355,8 @@ impl cstr {
 		this
 	}
 
-	unsafe fn from_str(s: &str) -> cstr {
+	unsafe fn from_str(s: &str) -> cstr 
+    {
 		let mut this = cstr::new(256);
 		for c in slice::iter(as_bytes(s)) {
 			this.add_char(*c);
@@ -268,7 +370,8 @@ impl cstr {
 	// -- TODO: exchange_malloc, exchange_free
 	unsafe fn destroy(&self) { heap.free(self.p); }
 
-	unsafe fn add_char(&mut self, x: u8) -> bool{
+	unsafe fn add_char(&mut self, x: u8) -> bool
+    {
 		if (self.p_cstr_i == self.max) { return false; }
 		*(((self.p as uint)+self.p_cstr_i) as *mut u8) = x;
 		self.p_cstr_i += 1;
@@ -276,19 +379,22 @@ impl cstr {
 		true
 	}
 
-	unsafe fn delete_char(&mut self) -> bool {
+	unsafe fn delete_char(&mut self) -> bool 
+    {
 		if (self.p_cstr_i == 0) { return false; }
 		self.p_cstr_i -= 1;
 		*(((self.p as uint)+self.p_cstr_i) as *mut char) = '\0';
 		true
 	}
 
-	unsafe fn reset(&mut self) {
+	unsafe fn reset(&mut self) 
+    {
 		self.p_cstr_i = 0; 
 		*(self.p as *mut char) = '\0';
 	}
 
-	unsafe fn eq(&self, other: &cstr) -> bool {
+	unsafe fn eq(&self, other: &cstr) -> bool 
+    {
 		if (self.len() != other.len()) { return false; }
 		else {
 			let mut x = 0;
@@ -304,7 +410,8 @@ impl cstr {
 		}
 	}
 
-	unsafe fn streq(&self, other: &str) -> bool {
+	unsafe fn streq(&self, other: &str) -> bool 
+    {
 		let mut x = 0;
 		let mut selfp: uint = self.p as uint;
 		for c in slice::iter(as_bytes(other)) {
@@ -314,7 +421,8 @@ impl cstr {
 		*(selfp as *char) == '\0'
 	}
 
-	unsafe fn getarg(&self, delim: char, mut k: uint) -> Option<cstr> {
+	unsafe fn getarg(&self, delim: char, mut k: uint) -> Option<cstr> 
+    {
 		let mut ind: uint = 0;
 		let mut found = k == 0;
 		let mut selfp: uint = self.p as uint;
@@ -336,13 +444,14 @@ impl cstr {
 			selfp += 1;
 			ind += 1;
 			if (ind == self.max) { 
-				putstr(&"\nSomething broke!");
+				//self.output(&"\nSomething broke!");
 				return None; 
 			}
 		}
 	}
 
-	unsafe fn split(&self, delim: char) -> (cstr, cstr) {
+	unsafe fn split(&self, delim: char) -> (cstr, cstr) 
+    {
 		let mut selfp: uint = self.p as uint;
 		let mut beg = cstr::new(256);
 		let mut end = cstr::new(256);
@@ -367,3 +476,6 @@ impl cstr {
 
 }
 
+
+// TODO
+// pub fn new() -> ~Shell

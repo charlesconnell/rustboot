@@ -3,9 +3,12 @@
 /* UART communication model
  * Based on the Arduino Serial API */
 
+use core::str;
+
 pub type baud = u32;
 
-pub type serialReceiveHandler<'a> = 'a|&u8, uint| -> ();
+// TODO One char at a time?
+pub type serialReceiveHandler<'a> = 'a|char| -> ();
 
 pub trait Serial{
     /// Initialize device and begin transmission.
