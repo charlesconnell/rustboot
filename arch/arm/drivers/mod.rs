@@ -6,14 +6,14 @@ use core::option::{Option, None};
 use kernel;
 
 // See http://static.rust-lang.org/doc/master/rust.html#conditional-compilation
-#[cfg(arm1176jzf_s)]
+#[cfg(target_chip = "arm1176jzf-s")]
 pub use chip = self::arm1176jzf_s;
-#[cfg(arm926ej_s)]
+#[cfg(target_chip = "arm926ej-s")]
 pub use chip = self::arm926ej_s;
 
-#[cfg(arm1176jzf_s)]
+#[cfg(target_chip = "arm1176jzf-s")]
 mod arm1176jzf_s;
-#[cfg(arm926ej_s)]
+#[cfg(target_chip = "arm926ej-s")]
 mod arm926ej_s;
 
 pub fn init() {
