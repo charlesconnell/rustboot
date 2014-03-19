@@ -36,6 +36,7 @@ pub struct Ehdr {
 }
 
 #[packed]
+<<<<<<< HEAD
 pub struct Elf64_Phdr {
     pub p_type: super::HeaderType,
     pub p_flags: Elf64_Word,
@@ -45,6 +46,17 @@ pub struct Elf64_Phdr {
     pub p_filesz: Elf64_Xword,
     pub p_memsz: Elf64_Xword,
     pub p_align: Elf64_Xword,
+=======
+pub struct Phdr {
+    p_type: super::HeaderType,
+    p_flags: Elf64_Word,
+    p_offset: Elf64_Off,
+    p_vaddr: Elf64_Addr,
+    p_paddr: Elf64_Addr,
+    p_filesz: Elf64_Xword,
+    p_memsz: Elf64_Xword,
+    p_align: Elf64_Xword,
+>>>>>>> elf HeaderFlags
 }
 
 #[packed]
