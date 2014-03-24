@@ -1,5 +1,5 @@
 use core::mem::{transmute, size_of};
-use core::ptr::copy_nonoverlapping_memory;
+use core::clone::{Clone, DeepClone};
 use core;
 
 use kernel::mm::physical;
@@ -216,3 +216,34 @@ impl Table<Table<Page>> {
         }
     }
 }
+
+// impl Clone for Table<Table<Page>> {
+//     #[inline(always)]
+//     fn clone(&self) -> Table<Table<Page>> {
+//         unsafe {
+//             // new directory
+//             let dir_phys: Phys<PageDirectory> = physical::zero_alloc_frames(1);
+//             let dir_temp = (*directory).set_page(transmute(TEMP1), dir_phys, PRESENT | RW | USER);
+
+//             rt::breakpoint();
+//             (*dir_temp).set(directory as uint, Page::new(dir_phys, PRESENT | RW));
+//             (*dir_temp).set(0, self.get(0));
+
+//             let mut i = (ENTRIES * PAGE_SIZE) as uint;
+//             while i < 0xC0000000 {
+//                 (*dir_temp).set(i, self.get(i));
+
+//                 i += PAGE_SIZE as uint;
+//             }
+
+//             *dir_phys.as_ptr()
+//         }
+//     }
+// }
+
+// impl DeepClone for Table<Table<Page>> {
+//     #[inline(always)]
+//     fn deep_clone(&self) -> Table<Table<Page>> {
+//         *self
+//     }
+// }
