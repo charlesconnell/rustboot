@@ -17,19 +17,19 @@ struct EfiTableHeader {
 }
 
 pub struct EfiSystemTable {
-    priv hdr : EfiTableHeader,
-    priv firmwareVendor : *u16,
-    priv firmwareRevision : u32,
-    priv consoleInHandle : EfiHandle,
-    priv conIn : *EfiSimpleTextInputProtocol,
-    priv consoleOutHandle : EfiHandle,
-    priv conOut : *EfiSimpleTextOutputProtocol,
-    priv consoleErrorHandle : EfiHandle,
-    priv stdErr : *EfiSimpleTextOutputProtocol,
-    priv runtimeServices : *EfiRuntimeServices,
-    priv bootServices : *EfiBootServices,
-    priv numberOfTableEntries : uint,
-    priv configurationTable : *EfiConfigurationTable
+    hdr : EfiTableHeader,
+    firmwareVendor : *u16,
+    firmwareRevision : u32,
+    consoleInHandle : EfiHandle,
+    conIn : *EfiSimpleTextInputProtocol,
+    consoleOutHandle : EfiHandle,
+    conOut : *EfiSimpleTextOutputProtocol,
+    consoleErrorHandle : EfiHandle,
+    stdErr : *EfiSimpleTextOutputProtocol,
+    runtimeServices : *EfiRuntimeServices,
+    bootServices : *EfiBootServices,
+    numberOfTableEntries : uint,
+    configurationTable : *EfiConfigurationTable
 }
 
 pub static mut SYSTEM_TABLE : *EfiSystemTable = 0 as *EfiSystemTable;
@@ -116,8 +116,8 @@ pub trait SimpleTextInput {
 }
 
 pub struct Console {
-    priv input  : *EfiSimpleTextInputProtocol,
-    priv output : *EfiSimpleTextOutputProtocol,
+    input  : *EfiSimpleTextInputProtocol,
+    output : *EfiSimpleTextOutputProtocol,
 }
 
 impl SimpleTextOutput for Console {

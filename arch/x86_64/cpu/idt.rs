@@ -8,13 +8,13 @@ pub type IdtReg = DtReg<IdtEntry>;
 
 #[packed]
 pub struct IdtEntry {
-    priv addr_ll: u16,
-    priv sel: u16,
-    priv zero: u8,
-    priv flags: u8,
-    priv addr_lh: u16,
-    priv addr_hi: u32,
-    priv zero2: u32
+    addr_ll: u16,
+    sel: u16,
+    zero: u8,
+    flags: u8,
+    addr_lh: u16,
+    addr_hi: u32,
+    zero2: u32
 }
 
 impl IdtEntry {
