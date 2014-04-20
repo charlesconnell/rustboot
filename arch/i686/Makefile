@@ -19,7 +19,6 @@ QEMU := qemu-system-i386
 BDIR := ./floppy
 CORE_LIB := ../../rust-core/core/lib.rs
 LCORE := $(BDIR)/$(shell $(RUSTC) --crate-file-name $(CORE_LIB))
-LMACRO := $(BDIR)/$(shell $(RUSTC) --crate-file-name ../../asm_ext.rs)
 OBJS := $(BDIR)/loader.o $(BDIR)/main.o
 LINK := $(BDIR)/linker.ld $(OBJS) $(BDIR)/initram.elf.embed
 LIBS := $(LCORE)
@@ -51,10 +50,6 @@ $(BDIR)/main.bc: ../../lib.rs $(LCORE)
 
 %.o: %.bc
 	$(CC) $(CFLAGS) -c $^ -o $@
-
-# asm ext
-$(LMACRO): ../../asm_ext.rs
-	$(RUSTC) --crate-type=rlib -O -Z no-landing-pads -g $^ --out-dir $(BDIR)
 
 # Assemble loader
 %.o: %.asm
