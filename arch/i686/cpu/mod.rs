@@ -52,11 +52,12 @@ macro_rules! cpuid(
 // exception info and processor state saved on stack
 pub struct Context {
     // Registers saved by the ISR (in reverse order)
-    edi: u32, esi: u32, ebp: u32, esp: u32, ebx: u32, edx: u32, ecx: u32, eax: u32,
-    ds: u32, es: u32, fs: u32, gs: u32,
-    int_no: u32,   // added by ISRs
-    err_code: u32, // added by some exceptions
-    call_stack: IsrCallStack
+    pub edi: u32, pub esi: u32, pub ebp: u32, pub esp: u32,
+    pub ebx: u32, pub edx: u32, pub ecx: u32, pub eax: u32,
+    pub ds:  u32, pub es:  u32, pub fs:  u32, pub gs: u32,
+    pub int_no: u32,   // added by ISRs
+    pub err_code: u32, // added by some exceptions
+    pub call_stack: IsrCallStack
 }
 
 // the cpu adds these when calling the ISR
