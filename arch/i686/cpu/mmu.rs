@@ -1,12 +1,13 @@
 use core::mem::{transmute, size_of};
-use core::clone::{Clone, DeepClone};
+use core::ptr::copy_nonoverlapping_memory;
 use core;
 
 use kernel::mm::physical;
 use kernel::mm::physical::Phys;
 use util::int::range;
 use util::rt;
-use kernel;
+use kernel::Kernel;
+use super::exception::{PageFault, exception_handler};
 
 pub type Frame = [u8, ..PAGE_SIZE];
 
@@ -20,9 +21,9 @@ define_flags!(Flags: uint {
 })
 
 #[packed]
-pub struct Page(uint);
+pub struct Page(pub uint);
 
-static PAGE_SIZE: uint = 0x1000;
+pub static PAGE_SIZE: uint = 0x1000;
 static PAGE_SIZE_LOG2: uint = 12;
 static ENTRIES:   uint = 1024;
 
@@ -49,9 +50,9 @@ struct Directory<U = PageTable> {
 pub type PageTable = Table<Page>;
 pub type PageDirectory = Table<Table<Page>>;
 
-pub unsafe fn init() {
-    let dir: Phys<PageDirectory> = physical::zero_alloc_frames(1);
-    let table: Phys<PageTable>   = physical::alloc_frames(1);
+pub unsafe fn init(kernel: &mut Kernel) -> Phys<PageDirectory> {
+    let dir: Phys<PageDirectory> = kernel.zero_alloc_frames(1);
+    let table: Phys<PageTable>   = kernel.alloc_frames(1);
 
     (*table.as_ptr()).identity_map(0, PRESENT | RW);
     (*dir.as_ptr()).set_addr(0 as *mut u8, table, PRESENT | RW);
@@ -60,13 +61,11 @@ pub unsafe fn init() {
     // When accessing its virtual address(...)
     (*dir.as_ptr()).map_self(dir);
 
-    kernel::int_table.map(|mut t| {
-        use super::exception::{PageFault, exception_handler};
-        t.set_isr(PageFault, true, exception_handler());
-    });
+    kernel.interrupts.set_isr(PageFault, true, exception_handler());
 
     switch_directory(dir);
     enable_paging();
+    dir
 }
 
 pub fn switch_directory(dir: Phys<PageDirectory>) {
@@ -79,14 +78,14 @@ fn enable_paging() {
     CR0::write(CR0 | CR0_PG);
 }
 
-pub unsafe fn map(page_ptr: *mut u8, len: uint, flags: Flags) {
-    (*directory).map(page_ptr, len, flags);
+pub unsafe fn map_frame(page_ptr: *mut u8, flags: Flags) {
+    (*directory).map_frame(page_ptr, flags);
 }
 
 #[inline]
 fn flush_tlb<T>(addr: T) {
     unsafe {
-        asm!("invlpg [$0]" :: "r"(addr) : "memory" : "volatile", "intel")
+        asm!("invlpg ($0)" :: "r"(addr) : "memory" : "volatile")
     }
 }
 
@@ -165,7 +164,7 @@ impl Table<Table<Page>> {
                 table.physical().as_ptr()
             }
             _ => unsafe { // allocate table
-                let table: Phys<PageTable> = physical::zero_alloc_frames(1);
+                let table: Phys<PageTable> = (*physical::frames).zero_alloc(1);
                 self.set_addr(vptr, table, flags); // page fault
                 // flush_tlb(table);
                 table.as_ptr()
@@ -173,28 +172,15 @@ impl Table<Table<Page>> {
         }
     }
 
-    pub unsafe fn set_page<T>(&mut self, vptr: *mut T, phys: Phys<T>, flags: Flags) -> *mut T {
+    pub unsafe fn set_page<T>(&mut self, vptr: *mut T, phys: Phys<T>, flags: Flags) {
         let table = self.fetch_table(vptr, flags);
         (*table).set_addr(vptr, phys, flags);
-        vptr
     }
 
-    pub unsafe fn map_frame(&mut self, vptr: *mut u8, flags: Flags) {
-        self.set_page(vptr, physical::alloc_frames(1), flags | PRESENT);
-    }
-
-    pub fn map(&mut self, mut page_ptr: *mut u8, len: uint, flags: Flags) {
-        use util::ptr::mut_offset;
-        // TODO: optimize with uints?
-        unsafe {
-            let end = mut_offset(page_ptr, len as int);
-            while page_ptr < end {
-                let frame = physical::alloc_frames(1);
-                self.set_page(page_ptr, frame, flags | PRESENT);
-                (*directory).set_page(page_ptr, frame, flags | PRESENT);
-                page_ptr = mut_offset(page_ptr, PAGE_SIZE as int);
-            }
-        }
+    pub unsafe fn map_frame(&mut self, vptr: *mut u8, flags: Flags) -> Phys<u8> {
+        let phys = (*physical::frames).alloc(1);
+        self.set_page(vptr, phys, flags | PRESENT);
+        phys
     }
 
     fn map_self(&mut self, this: Phys<PageDirectory>) {
@@ -204,8 +190,9 @@ impl Table<Table<Page>> {
     pub fn clone(&self) -> Phys<PageDirectory> {
         unsafe {
             // new directory
-            let dir_phys: Phys<PageDirectory> = physical::zero_alloc_frames(1);
-            let dir_temp = (*directory).set_page(transmute(TEMP1), dir_phys, PRESENT | RW);
+            let dir_phys: Phys<PageDirectory> = (*physical::frames).zero_alloc(1);
+            (*directory).set_page(transmute(TEMP1), dir_phys, PRESENT | RW);
+            let dir_temp: *mut PageDirectory = transmute(TEMP1);
 
             (*dir_temp).map_self(dir_phys);
 
