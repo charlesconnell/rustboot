@@ -1,7 +1,7 @@
 TARGET := i686-intel-linux
 
 RUSTC := $(RUST_ROOT)/bin/rustc
-RUSTCFLAGS := -O --target $(TARGET) -Z no-landing-pads -g
+RUSTCFLAGS := -O --target $(TARGET) -Z no-landing-pads
 
 CC := $(LLVM_ROOT)/bin/clang
 CFLAGS := -O3 -ffreestanding -target $(TARGET)
