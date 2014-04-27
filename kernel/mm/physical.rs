@@ -7,14 +7,7 @@ use kernel::mm::Allocator;
 use cpu::mmu::Frame;
 use util::bitv;
 
-pub static mut frames: mm::Alloc = mm::Alloc {
-    base: 0x200_000 as *mut u8,
-    el_size: 12,
-    parent: mm::BuddyAlloc {
-        order: 13,
-        tree: bitv::Bitv { storage: 0 as *mut u32 }
-    }
-};
+pub static mut frames: *mut FrameAllocator = 0 as *mut FrameAllocator;
 
 pub struct Phys<T> {
     ptr: *mut T
@@ -38,27 +31,44 @@ impl<T> Phys<T> {
     }
 }
 
-pub fn init() {
+pub struct FrameAllocator {
+    parent: mm::Alloc
+}
+
+impl FrameAllocator {
+    pub fn new(base: *mut u8) -> FrameAllocator {
+        FrameAllocator { parent: mm::Alloc::new(
+            mm::BuddyAlloc::new(13, bitv::Bitv { storage: unsafe { heap::zero_alloc::<u32>(1024) } }),
+            base,
+            12
+        ) }
+    }
+
+    pub unsafe fn alloc<T = Frame>(&mut self, count: uint) -> Phys<T> {
+        match self.parent.alloc(count) {
+            (_, 0) => abort(),
+            (ptr, _) => Phys { ptr: ptr as *mut T }
+        }
+    }
+
+    pub unsafe fn zero_alloc<T = Frame>(&mut self, count: uint) -> Phys<T> {
+        match self.parent.zero_alloc(count) {
+            (_, 0) => abort(),
+            (ptr, _) => Phys { ptr: ptr as *mut T }
+        }
+        // self.alloc(count) ...
+    }
+
+    #[inline]
+    pub unsafe fn free<T>(&mut self, ptr: Phys<T>) {
+        self.parent.free(ptr.offset() as *mut u8);
+    }
+}
+
+pub fn init() -> FrameAllocator {
     unsafe {
-        frames.parent.tree.storage = heap::zero_alloc::<u32>(1024);
+        let a = FrameAllocator::new(0x200_000 as *mut u8);
+        frames = &a as *FrameAllocator as *mut FrameAllocator;
+        a
     }
-}
-
-pub unsafe fn alloc_frames<T = Frame>(count: uint) -> Phys<T> {
-    match frames.alloc(count) {
-        (_, 0) => abort(),
-        (ptr, _) => Phys { ptr: ptr as *mut T }
-    }
-}
-
-pub unsafe fn zero_alloc_frames<T = Frame>(count: uint) -> Phys<T> {
-    match frames.zero_alloc(count) {
-        (_, 0) => abort(),
-        (ptr, _) => Phys { ptr: ptr as *mut T }
-    }
-}
-
-#[inline]
-pub unsafe fn free_frames<T>(ptr: Phys<T>) {
-    frames.free(ptr.offset() as *mut u8);
 }
