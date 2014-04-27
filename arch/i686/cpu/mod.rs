@@ -66,6 +66,10 @@ struct IsrCallStack {
 }
 
 impl Context {
+    pub fn syscall_args(&self) -> [u32, ..6] {
+        [self.ebx, self.ecx, self.edx, self.esi, self.edi, self.ebp]
+    }
+
     unsafe fn save() -> &mut Context {
         let this: &mut Context;
         asm!("push gs

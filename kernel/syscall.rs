@@ -4,51 +4,21 @@ use core::mem::transmute;
 use platform = arch::i686;
 use cpu::Context;
 
-pub struct args(u32, u32, u32, u32);
-
 macro_rules! syscall(
-    (fn $name:ident() -> $ret:ty $func:expr) => (
-        pub fn $name(regs: &mut Context) {
-            let ret: $ret = { $func };
-            regs.eax = ret as u32;
-        }
-    );
-    (fn $name:ident($a0:ident: $t0:ty) -> $ret:ty $func:expr) => (
-        pub fn $name(regs: &mut Context) {
-            let $a0 = regs.ebx as $t0;
-            let ret: $ret = { $func };
-            regs.eax = ret as u32;
-        }
-    );
-    // 1 arg
-    (fn $name:ident($a0:ident: $t0:ty) $func:expr) => (
+    (fn $name:ident($($param:ident: $T:ty),*) -> $ret:ty $func:expr) => (
         fn $name(regs: &mut Context) {
-            let $a0 = regs.ebx as $t0;
-            $func
-        }
-    );
-    // 3 args
-    (fn $name:ident($a0:ident: $t0:ty, $a1:ident: $t1:ty, $a2:ident: $t2:ty) -> $ret:ty $func:expr) => (
-        fn $name(regs: &mut Context) {
-            let $a0 = regs.ebx as $t0;
-            let $a1 = regs.ecx as $t1;
-            let $a2 = regs.edx as $t2;
-            let ret: $ret = { $func };
-            regs.eax = ret as u32;
-        }
-    );
-    (fn $name:ident($a0:ident: $t0:ty, $a1:ident: $t1:ty, $a2:ident: $t2:ty) $func:expr) => (
-        fn $name(regs: &mut Context) {
-            let $a0 = regs.ebx as $t0;
-            let $a1 = regs.ecx as $t1;
-            let $a2 = regs.edx as $t2;
-            $func
+            match regs.syscall_args() {
+                [$($param),*, ..] => {
+                    $(let $param = $param as $T;)*
+                    let ret: $ret = { $func };
+                    regs.eax = ret as u32;
+                }
+            }
         }
     );
 )
 
 pub fn handler(ctx: &mut Context) {
-    // let args(f, _, _, _) = *a;
     match ctx.eax {
         1 => {
             exit(ctx)
