@@ -7,7 +7,9 @@
 extern crate core;
 
 #[cfg(target_arch = "x86")]
-use platform = arch::i686;
+pub use platform = arch::i686;
+#[cfg(target_arch = "x86")]
+pub use arch::i686::cpu;
 
 #[cfg(target_arch = "x86_64")]
 use platform = self::arch::x86_64;
@@ -24,7 +26,6 @@ pub use platform::runtime::{memset, memcpy, memmove};
 #[cfg(target_arch = "arm")]
 pub use support::{memcpy, memmove};
 
-pub use platform::cpu;
 pub use arch::common;
 pub use kernel::util;
 // visibility trick
