@@ -67,20 +67,10 @@ impl Kernel {
 #[lang="start"]
 #[no_mangle]
 pub fn main() {
-    heap::init();
-    mm::physical::init();
+    let mut kernel = Kernel::init();
 
-    let table = interrupt::Table::new();
-    table.load();
     unsafe {
-        int_table = Some(table);
-        drivers::keydown = Some(io::putc);
     }
-    cpu::init();
-
-    drivers::init();
-    // io::puti(-2147483648);
-    // unsafe {asm!("swi 0")}
     elf::exec(&_binary_initram_elf_start);
     extern { static _binary_initram_elf_start: u8; }
 }
