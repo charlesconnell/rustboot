@@ -9,10 +9,11 @@ use16
 
 ; entry point
 start:
-    ; initialize segment registers
+    ; initialize segment registers and stack pointer
     xor ax, ax
     mov ds, ax
     mov es, ax
+    mov sp, 0x7c00
 
     ; load Rust code into 0x10000...0x1ffff so we can jump to it later
     mov si, 2  ; starting with sector 67
