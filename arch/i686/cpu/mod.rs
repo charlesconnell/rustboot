@@ -7,7 +7,10 @@ use core;
 pub use self::idt::IdtEntry;
 use util::rt;
 use util::ptr::mut_offset;
+use cpu::exception::{Breakpoint, exception_handler};
 use kernel::heap;
+use kernel::Kernel;
+use kernel::mm::physical;
 use kernel;
 // use vec::Vec;
 
@@ -134,13 +137,14 @@ impl Context {
 
 struct LocalSegment {
     ts: tss::TssEntry,
+    kernel: *Kernel,
     // &cpu info
     // &proc
 }
 
 pub static mut desc_table: Option<gdt::Gdt> = None;
 
-pub fn init() {
+pub fn init(kernel: &mut Kernel) -> physical::Phys<mmu::PageDirectory> {
     use cpu::gdt::{Gdt, GdtEntry, SIZE_32, STORAGE, CODE_READ, DATA_WRITE, DPL3};
 
     let local_data = unsafe {
@@ -167,14 +171,10 @@ pub fn init() {
     unsafe {
         desc_table = Some(t);
 
-        kernel::int_table.map(|mut t| {
-            use cpu::exception::{Breakpoint, exception_handler};
-            t.set_isr(Breakpoint, false, exception_handler());
-        });
+        kernel.interrupts.set_isr(Breakpoint, false, exception_handler());
 
-        mmu::init();
+        mmu::init(kernel)
 
-        let ctx = heap::malloc_raw(size_of::<Context>()) as *Context;
         // (*ctx).switch((5 << 3) + 3, (3 << 3));
     }
 }
