@@ -17,7 +17,6 @@ mod process;
 mod elf;
 mod sh;
 
-pub static mut int_table: Option<Table> = None;
 // #[lang="fail_"]
 // pub fn fail_(_: *u8, _: *u8, _: uint) -> ! {
 //     loop {}
