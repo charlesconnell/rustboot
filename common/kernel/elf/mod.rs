@@ -9,8 +9,8 @@ use kernel::process::Process;
 use kernel::mm;
 use util::ptr::mut_offset;
 
-use self::elf32::Elf32_Ehdr;
-use self::elf64::Elf64_Ehdr;
+use self::elf32::Ehdr;
+use self::elf64::Ehdr;
 
 mod elf32;
 mod elf64;

@@ -1,5 +1,5 @@
 use core::option::{Option, Some, None};
-use core::mem::{uninit, transmute_mut};
+use core::mem::uninit;
 
 use platform::{cpu, io, drivers};
 use cpu::interrupt;
@@ -15,7 +15,7 @@ mod process;
 #[allow(dead_code)]
 #[allow(non_camel_case_types)]
 mod elf;
-mod sh;
+//mod sh; // this doesn't exist yet...
 
 // #[lang="fail_"]
 // pub fn fail_(_: *u8, _: *u8, _: uint) -> ! {

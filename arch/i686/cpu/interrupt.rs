@@ -1,5 +1,5 @@
 use core::mem::transmute;
-use core::ptr::offset;
+use core::intrinsics::offset;
 
 use common::x86::reg;
 use cpu::Context;
@@ -40,7 +40,7 @@ impl Table {
         }
     }
 
-    pub unsafe fn enable_maskable(&mut self, irq: uint, isr: extern "C" unsafe fn()) {
+    pub unsafe fn enable_maskable(&mut self, irq: uint, isr: unsafe extern "C" fn()) {
         *mut_offset(self.table, irq as int) = IdtEntry::new(
             isr,                // interrupt service routine
             1 << 3,             // segment selector
@@ -52,7 +52,7 @@ impl Table {
     }
 
     #[allow(visible_private_types)]
-    pub unsafe fn set_isr(&mut self, val: Fault, code: bool, handler: extern unsafe fn()) {
+    pub unsafe fn set_isr(&mut self, val: Fault, code: bool, handler: unsafe extern "C" fn()) {
         *mut_offset(self.table, val as int) = Isr::new(Fault(val), code).idt_entry(handler);
     }
 
@@ -106,7 +106,7 @@ impl Isr {
         // this
     }
 
-    pub unsafe fn idt_entry(&mut self, handler: extern "C" unsafe fn()) -> IdtEntry {
+    pub unsafe fn idt_entry(&mut self, handler: unsafe extern "C" fn()) -> IdtEntry {
         self.rel = handler as i32 - offset(transmute::<&Isr, *Isr>(self), 1) as i32;
         IdtEntry::new(transmute(self), 1 << 3, INTR_GATE | PRESENT)
     }
@@ -118,7 +118,7 @@ impl Isr {
 
 #[no_split_stack]
 #[inline(never)]
-pub unsafe fn interrupt_handler() -> extern "C" unsafe fn() {
+pub unsafe fn interrupt_handler() -> unsafe extern "C" fn() {
     // Points to the data on stack
     asm!("jmp $$.skip
       interrupt_handler_asm:"

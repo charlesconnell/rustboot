@@ -1,6 +1,7 @@
 use core::mem::transmute;
 use core::intrinsics::offset;
-use core::c_types::{c_ushort, c_uint, c_int, c_ulong, c_long};
+
+use rust_core::c_types::{c_ushort, c_uint, c_int, c_ulong, c_long};
 
 use util::int::range;
 
