@@ -1,6 +1,5 @@
 use core::mem::{volatile_store, transmute};
-use core::ptr::offset;
-use core;
+use core::intrinsics::offset;
 
 use kernel;
 use platform::io;

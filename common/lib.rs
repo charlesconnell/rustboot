@@ -10,6 +10,8 @@ extern crate core;
 pub use platform = arch::i686;
 #[cfg(target_arch = "x86")]
 pub use arch::i686::cpu;
+#[cfg(target_arch = "x86")]
+pub use platform::runtime::{memset, memcpy, memmove};
 
 #[cfg(target_arch = "x86_64")]
 use platform = self::arch::x86_64;
@@ -20,11 +22,8 @@ pub use platform::runtime;
 
 #[cfg(target_arch = "arm")]
 use platform = arch::arm;
-
-#[cfg(target_arch = "x86")]
-pub use platform::runtime::{memset, memcpy, memmove};
 #[cfg(target_arch = "arm")]
-pub use support::{memcpy, memmove};
+pub use rust_core::support::{memcpy, memmove};
 
 pub use arch::common;
 pub use kernel::util;
@@ -42,9 +41,8 @@ mod macros;
 
 pub mod kernel;
 
-#[cfg(target_arch = "arm")]
-#[path = "rust-core/support.rs"]
-mod support;
+#[macro_escape]
+mod rust_core;
 
 mod arch {
     pub mod common;

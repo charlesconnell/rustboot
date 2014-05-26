@@ -1,5 +1,6 @@
 use core::mem::{transmute, size_of};
 use core::clone::{Clone, DeepClone};
+use core::ptr::copy_nonoverlapping_memory;
 use core;
 
 use platform::runtime;
@@ -59,7 +60,7 @@ pub unsafe fn init() {
 
     // Map the directory as its own last table.
     // When accessing its virtual address(...)
-    (*dir.as_ptr()).set_addr(directory, dir, PRESENT | RW);
+    (*dir.as_ptr()).map_self(dir);
 
     kernel::int_table.map(|mut t| {
         use super::exception::{PageFault, exception_handler};
@@ -92,7 +93,7 @@ impl Page {
     }
 
     fn at_frame(i: uint, flags: Flags) -> Page {
-        Page((i * PAGE_SIZE) as u32) | flags
+        Page(i * PAGE_SIZE) | flags
     }
 
     fn physical<P>(&self) -> Phys<P> {

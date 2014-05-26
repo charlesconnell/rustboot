@@ -1,9 +1,9 @@
-use core::cmp::expect;
-use core::ptr::offset;
+//use core::cmp::expect;
+use core::intrinsics::offset;
 
 use util::ptr::mut_offset;
 
-type c_int = i32;
+use rust_core::c_types::c_int;
 
 // TODO: use SSE
 

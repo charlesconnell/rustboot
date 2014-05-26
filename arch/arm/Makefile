@@ -1,48 +1,24 @@
-TARGET := arm-linux-noeabi
+include ../../common/Makefile
 
-GCC_PREFIX := $(GCC_PREFIX)arm-none-eabi-
+GCC_PREFIX_2    = $(GCC_PREFIX)arm-none-eabi-
 
-RUSTC := $(RUST_ROOT)/bin/rustc
-RUSTCFLAGS := -O --target $(TARGET) -Z no-landing-pads -g
+TARGET         ?= arm-linux-noeabi
 
-AS := $(GCC_PREFIX)as
-LD := $(GCC_PREFIX)ld
+LLCFLAGS       ?= -mtriple=$(TARGET) -march=arm -mcpu=arm926ej-s --float-abi=hard -asm-verbose
 
-LLC := $(LLVM_ROOT)/bin/llc
-LLCFLAGS := -mtriple=$(TARGET) -march=arm -mcpu=arm926ej-s --float-abi=hard -asm-verbose
+QEMU           ?= qemu-system-arm
 
-GDB := $(GCC_PREFIX)gdb
-OBJCOPY := $(GCC_PREFIX)objcopy
-QEMU := qemu-system-arm
+OBJS           ?= $(BDIR)/loader.o $(BDIR)/aeabi_runtime.o $(BDIR)/main.o $(BDIR)/core.o
+LINK           ?= $(BDIR)/linker.ld $(OBJS) $(BDIR)/initram.elf.embed
 
-BDIR := ./boot
-CORE_LIB := ../../rust-core/core/lib.rs
-LCORE := $(BDIR)/$(shell $(RUSTC) --crate-file-name $(CORE_LIB))
+DEP_RM         ?= arch/
+DEP_KEEP       ?= arch/arm
 
-OBJS := $(BDIR)/loader.o $(BDIR)/aeabi_runtime.o $(BDIR)/main.o $(BDIR)/core.o
-LINK := $(BDIR)/linker.ld $(OBJS) $(BDIR)/initram.elf.embed
 
-DEP_RM := arch\/
-DEP_KEEP := arch\/arm
-DEP_SCRIPT := 's/\($(DEP_KEEP)\)/\n\1/g;s/ \S*$(DEP_RM)\S*//g;s/\n\($(DEP_KEEP)\)/\1/g'
-
--include ./config.mk
--include $(BDIR)/core.d
--include $(BDIR)/main.d
-
-.PHONY: all run debug clean
+.PHONY: all run debug
 
 all: $(BDIR)/kernel.bin
 	@wc -c $^
-
-# Library rust-core
-$(LCORE) $(BDIR)/core.bc:
-	$(RUSTC) $(RUSTCFLAGS) $(CORE_LIB) --dep-info --emit=bc,link --out-dir $(BDIR)
-
-# Compile rustboot. Produce dependency info
-$(BDIR)/main.bc: $(LCORE)
-	$(RUSTC) $(RUSTCFLAGS) -L $(BDIR) --dep-info --emit=bc ../../lib.rs --out-dir $(BDIR)
-	@sed -i $(DEP_SCRIPT) $(BDIR)/main.d
 
 %.s: %.bc
 	$(LLC) $(LLCFLAGS) $^ -o $@
@@ -54,12 +30,6 @@ $(BDIR)/main.bc: $(LCORE)
 # initram
 $(BDIR)/%.o: %.s
 	$(AS) $< -o $@
-
-$(BDIR)/initram.elf: $(BDIR)/module.o
-	$(LD) -s -o $@ $^
-
-$(BDIR)/%.embed: $(BDIR)/%
-	cd $(@D); $(LD) $(LDFLAGS) -r -b binary -o $(@F) $(<F)
 
 # kernel (object)
 $(BDIR)/kernel.elf: $(LINK)
@@ -85,6 +55,3 @@ else
 	tmux new-w "$(QEMU) -M versatilepb -m 32M -nographic -kernel $^ -s -S"
 	tmux split-w "$(GDB); tmux kill-w"
 endif
-
-clean:
-	@cat $(BDIR)/.gitignore | xargs -I{} find $(BDIR) -name {} | xargs rm -f

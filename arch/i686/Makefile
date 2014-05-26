@@ -1,55 +1,39 @@
-TARGET := i686-intel-linux
+include ../../common/Makefile
 
-RUSTC := $(RUST_ROOT)/bin/rustc
-RUSTCFLAGS := -O --target $(TARGET) -Z no-landing-pads
-
-CC := $(LLVM_ROOT)/bin/clang
-CFLAGS := -O3 -ffreestanding -target $(TARGET)
-
-LD := $(GCC_PREFIX)ld
-LDFLAGS := -melf_i386
-
-ASM := nasm
-ASMFLAGS := -g -f elf32
-
-GDB := $(GCC_PREFIX)gdb
-OBJCOPY := $(GCC_PREFIX)objcopy
-QEMU := qemu-system-i386
-
-BDIR := ./floppy
-CORE_LIB := ../../rust-core/core/lib.rs
-LCORE := $(BDIR)/$(shell $(RUSTC) --crate-file-name $(CORE_LIB))
-OBJS := $(BDIR)/loader.o $(BDIR)/main.o
-LINK := $(BDIR)/linker.ld $(OBJS) $(BDIR)/initram.elf.embed
-LIBS := $(LCORE)
-
-SECTIONS := .text .data .rodata
-
-DEP_RM := arch\/
-DEP_KEEP := arch\/i686\|arch\/common
-DEP_SCRIPT := 's/\($(DEP_KEEP)\)/\n\1/g;s/ \S*$(DEP_RM)\S*//g;s/\n\($(DEP_KEEP)\)/\1/g'
-
--include ./config.mk
--include $(BDIR)/core.d
 -include $(BDIR)/loader.d
--include $(BDIR)/main.d
 
-.PHONY: all run debug clean
+TARGET         ?= i686-intel-linux
+
+LDFLAGS        ?= -melf_i386
+
+ASM            ?= nasm
+ASMFLAGS       ?= -g -f elf32
+
+QEMU           ?= qemu-system-i386
+
+BDIR           ?= ./floppy
+
+OBJS           ?= $(BDIR)/loader.o $(BDIR)/main.o
+LINK           ?= $(BDIR)/linker.ld $(OBJS) $(BDIR)/initram.elf.embed
+LIBS           ?=
+
+SECTIONS       ?= .text .data .rodata
+
+DEP_RM         ?= arch/
+DEP_KEEP       ?= arch/i686\|arch/common
+
+
+.PHONY: all run debug
 
 all: $(BDIR)/floppy.img
 	@wc -c $^
 
-# Library rust-core
-$(LCORE): $(CORE_LIB)
-	$(RUSTC) $(RUSTCFLAGS) --dep-info $(@D)/core.d $(CORE_LIB) --out-dir $(BDIR)
-
-# Compile rustboot. Produce dependency info
-$(BDIR)/main.bc: ../../lib.rs $(LCORE)
-	$(RUSTC) $(RUSTCFLAGS) --dep-info -L $(BDIR) --emit=bc ../../lib.rs --out-dir $(BDIR)
-	@sed -i $(DEP_SCRIPT) $(BDIR)/main.d
-
 %.o: %.bc
 	$(CC) $(CFLAGS) -c $^ -o $@
+
+# initram
+$(BDIR)/%.o: %.asm
+	$(ASM) $(ASMFLAGS) -MD $(BDIR)/$*.d -o $@ $<
 
 # Assemble loader
 %.o: %.asm
@@ -58,20 +42,6 @@ $(BDIR)/main.bc: ../../lib.rs $(LCORE)
 # kernel (object)
 $(BDIR)/kernel.elf: $(LINK)
 	$(LD) $(LDFLAGS) -o $@ -T $^ "-(" $(LIBS) "-)" -Map=./$(BDIR)/linker.map
-
-# initram
-$(BDIR)/%.o: %.asm
-	$(ASM) $(ASMFLAGS) -MD $(BDIR)/$*.d -o $@ $<
-
-#$(BDIR)/module.o
-../../user/hello.elf: ../../user/hello.rs $(LCORE)
-	@$(MAKE) all -C ../../user/ CFLAGS="-m32 -target $(TARGET)" RUSTCFLAGS="$(RUSTCFLAGS) -L ../arch/i686/$(BDIR)" SHELL=$(SHELL)
-
-$(BDIR)/initram.elf: ../../user/hello.elf
-	$(OBJCOPY) -S -g --strip-unneeded $^ $@
-
-$(BDIR)/%.embed: $(BDIR)/initram.elf
-	cd $(@D); $(LD) $(LDFLAGS) -r -b binary -o $(@F) $(<F)
 
 # bootloader and kernel separately
 $(BDIR)/kernel.bin: $(BDIR)/kernel.elf
@@ -98,6 +68,3 @@ else
 	tmux split-w "$(GDB); tmux kill-p"
 	$(QEMU) -fda $(BDIR)/floppy.img -m 32 -s -S
 endif
-
-clean:
-	@cat $(BDIR)/.gitignore | xargs -I{} find $(BDIR) -name {} | xargs rm -f
