@@ -32,7 +32,7 @@ impl Table {
         }
     }
 
-    pub unsafe fn enable_maskable(&mut self, irq: uint, isr: extern "C" unsafe fn()) {
+    pub unsafe fn enable_maskable(&mut self, irq: uint, isr: extern "C" fn()) {
         *mut_offset(self.table, irq as int) = IdtEntry::new(
             isr,                // interrupt service routine
             1 << 3,             // segment selector
@@ -43,7 +43,7 @@ impl Table {
         // pic::mask(self.mask);
     }
 
-    pub unsafe fn set_isr(&mut self, val: Fault, code: bool, handler: extern "C" unsafe fn()) {
+    pub unsafe fn set_isr(&mut self, val: Fault, code: bool, handler: extern "C" fn()) {
         *mut_offset(self.table, val as int) = Isr::new(Fault(val), code).idt_entry(handler);
     }
 
@@ -81,7 +81,7 @@ impl Isr {
         this
     }
 
-    pub unsafe fn idt_entry(&mut self, handler: extern "C" unsafe fn()) -> IdtEntry {
+    pub unsafe fn idt_entry(&mut self, handler: extern "C" fn()) -> IdtEntry {
         self.rel = handler as i32 - offset(transmute::<&Isr, *Isr>(self), 1) as i32;
         IdtEntry::new(transmute(self), 1 << 3, INTR_GATE | PRESENT)
     }
