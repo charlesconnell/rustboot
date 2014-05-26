@@ -1,12 +1,10 @@
 use core::mem::transmute;
-use core::intrinsics::offset;
 
 use common::x86::reg;
 use cpu::Context;
 use cpu::exception::Fault;
 use cpu::idt::{IdtEntry, IdtReg, INTR_GATE, PRESENT};
 use platform::drivers::pic;
-use util::ptr::mut_offset;
 use kernel::heap;
 use kernel::syscall;
 
@@ -40,8 +38,8 @@ impl Table {
         }
     }
 
-    pub unsafe fn enable_maskable(&mut self, irq: uint, isr: unsafe extern "C" fn()) {
-        *mut_offset(self.table, irq as int) = IdtEntry::new(
+    pub unsafe fn enable_maskable(&mut self, irq: uint, isr: extern "C" fn()) {
+        *self.table.offset(irq as int) = IdtEntry::new(
             isr,                // interrupt service routine
             1 << 3,             // segment selector
             INTR_GATE | PRESENT // flags
@@ -52,13 +50,13 @@ impl Table {
     }
 
     #[allow(visible_private_types)]
-    pub unsafe fn set_isr(&mut self, val: Fault, code: bool, handler: unsafe extern "C" fn()) {
-        *mut_offset(self.table, val as int) = Isr::new(Fault(val), code).idt_entry(handler);
+    pub unsafe fn set_isr(&mut self, val: Fault, code: bool, handler: extern fn()) {
+        *self.table.offset(val as int) = Isr::new(Fault(val), code).idt_entry(handler);
     }
 
     pub fn set_intr_gate(&mut self, val: uint, isr: &mut Isr) {
         unsafe {
-            *mut_offset(self.table, val as int) = isr.idt_entry(interrupt_handler());
+            *self.table.offset(val as int) = isr.idt_entry(interrupt_handler());
         }
     }
 
@@ -106,8 +104,8 @@ impl Isr {
         // this
     }
 
-    pub unsafe fn idt_entry(&mut self, handler: unsafe extern "C" fn()) -> IdtEntry {
-        self.rel = handler as i32 - offset(transmute::<&Isr, *Isr>(self), 1) as i32;
+    pub unsafe fn idt_entry(&mut self, handler: extern "C" fn()) -> IdtEntry {
+        self.rel = handler as i32 - transmute::<&Isr, *Isr>(self).offset(1) as i32;
         IdtEntry::new(transmute(self), 1 << 3, INTR_GATE | PRESENT)
     }
 }

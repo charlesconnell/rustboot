@@ -1,12 +1,10 @@
 use core::mem::transmute;
-use core::intrinsics::offset;
 use core::ptr::copy_nonoverlapping_memory;
 
 use rust_core::c_types::{c_ushort, c_uint, c_int, c_ulong, c_long};
 
 use kernel::process::Process;
 use util::int;
-use util::ptr::mut_offset;
 
 // rust-bindgen generated bindings
 pub type Elf32_Half = c_ushort;

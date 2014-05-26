@@ -31,16 +31,15 @@ impl Process {
     }
 
     pub fn mmap(&self, mut page_ptr: *mut u8, size: uint, flags: Flags) {
-        use util::ptr::mut_offset;
         // TODO: optimize with uints?
         unsafe {
-            let end = mut_offset(page_ptr, size as int);
+            let end = page_ptr.offset(size as int);
             while page_ptr < end {
                 let frame = (*physical::frames).alloc(1);
                 (*self.paging.as_ptr()).set_page(page_ptr, frame, flags | PRESENT);
                 // FIXME do not set
                 (*directory).set_page(page_ptr, frame, flags | PRESENT);
-                page_ptr = mut_offset(page_ptr, PAGE_SIZE as int);
+                page_ptr = page_ptr.offset(PAGE_SIZE as int);
             }
         }
     }
