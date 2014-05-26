@@ -5,6 +5,8 @@ use kernel::util::int::uint_mul_with_overflow;
 use kernel::mm::{Allocator, Alloc, BuddyAlloc};
 use util::bitv;
 
+use rust_core::fail::{abort, out_of_memory};
+
 pub static mut heap: Option<Alloc> = None;
 
 pub fn init() -> Alloc {
