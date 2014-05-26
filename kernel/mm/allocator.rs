@@ -3,7 +3,6 @@ use core::ptr::{set_memory, copy_memory, offset};
 use core::u32::ctlz32;
 use core::cmp::expect;
 
-use util::ptr::mut_offset;
 use util::bitv::Bitv;
 
 #[repr(u8)]
@@ -185,7 +184,7 @@ impl Allocator for Alloc {
         let (offset, size) = self.parent.alloc(size);
         unsafe {
             return (
-                mut_offset(self.base, (offset << self.el_size) as int),
+                self.base.offset((offset << self.el_size) as int),
                 size << self.el_size
             )
         }
@@ -195,7 +194,7 @@ impl Allocator for Alloc {
         let length = 1 << self.parent.order << self.el_size;
 
         unsafe {
-            if ptr < self.base || ptr >= mut_offset(self.base, length) {
+            if ptr < self.base || ptr >= self.base.offset(length) {
                 return;
             }
         }

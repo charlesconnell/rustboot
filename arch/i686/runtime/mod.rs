@@ -1,10 +1,10 @@
 // use core::mem::transmute;
 use core::cmp::expect;
-use core::ptr::offset;
+// use core::ptr::offset;
 use core::c_types::c_int;
 
 use util::int::range;
-use util::ptr::mut_offset;
+// use util::ptr::mut_offset;
 use util::int::range;
 use kernel;
 
@@ -68,7 +68,7 @@ fn memset_nonzero(mut s: *mut u8, c: u8, mut n: uint) {
             },*/
             q => {
                 stosb(s, c, q);
-                s = unsafe { mut_offset(s, q as int) };
+                s = unsafe { s.offset(q as int) };
                 n -= q;
             }
         }
@@ -83,7 +83,7 @@ pub fn wmemset(mut dest: *mut u8, c: u16, n: uint) {
     if (n % 2) == 1 {
         unsafe {
             *(dest as *mut u16) = c;
-            dest = mut_offset(dest, 2);
+            dest = dest.offset(2);
         }
     }
 
@@ -126,7 +126,7 @@ pub fn sse2_dmem_movdqa_add(mut dest: *mut u8, c: u32, inc: u32, n: uint) {
         range(0, n, |_| {
             asm!("movdqa [$0], xmm0
                   paddd xmm0, xmm1" :: "r"(dest) :: "intel")
-            dest = mut_offset(dest, 16);
+            dest = dest.offset(16);
         });
     }
 }
@@ -163,7 +163,7 @@ pub fn memmove(dest: *mut u8, src: *u8, n: uint) {
     unsafe {
         if src < dest as *u8 {
             asm!("std")
-            memcpy(mut_offset(dest, n as int), offset(src, n as int), n);
+            memcpy(dest.offset(n as int), src.offset(n as int), n);
             asm!("cld")
         }
         else {

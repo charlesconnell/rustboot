@@ -1,5 +1,5 @@
 use core::option::{Option, Some, None};
-use core::mem::{uninit, transmute_mut};
+use core::mem::{uninit};
 
 use platform::{cpu, io, drivers};
 use cpu::interrupt;
