@@ -1,3 +1,5 @@
+BDIR            = ./floppy
+
 include ../../common/Makefile
 
 -include $(BDIR)/loader.d
@@ -10,8 +12,6 @@ ASM            ?= nasm
 ASMFLAGS       ?= -g -f elf32
 
 QEMU           ?= qemu-system-i386
-
-BDIR           ?= ./floppy
 
 OBJS           ?= $(BDIR)/loader.o $(BDIR)/main.o
 LINK           ?= $(BDIR)/linker.ld $(OBJS) $(BDIR)/initram.elf.embed
