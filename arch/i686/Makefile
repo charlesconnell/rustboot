@@ -1,4 +1,5 @@
-TARGET := i686-intel-linux
+# TARGET := i686-intel-linux
+TARGET := i686-unknown-linux-gnu
 
 RUSTC := $(RUST_ROOT)/bin/rustc
 RUSTCFLAGS := -O --target $(TARGET) -Z no-landing-pads
@@ -44,7 +45,7 @@ $(LCORE): $(CORE_LIB)
 	$(RUSTC) $(RUSTCFLAGS) --dep-info $(@D)/core.d $(CORE_LIB) --out-dir $(BDIR)
 
 # Compile rustboot. Produce dependency info
-$(BDIR)/main.bc: ../../lib.rs $(LCORE)
+$(BDIR)/main.bc: ../../lib.rs
 	$(RUSTC) $(RUSTCFLAGS) --dep-info -L $(BDIR) --emit=bc ../../lib.rs --out-dir $(BDIR)
 	@sed -i $(DEP_SCRIPT) $(BDIR)/main.d
 
@@ -64,7 +65,7 @@ $(BDIR)/%.o: %.asm
 	$(ASM) $(ASMFLAGS) -MD $(BDIR)/$*.d -o $@ $<
 
 #$(BDIR)/module.o
-../../user/hello.elf: ../../user/hello.rs $(LCORE)
+../../user/hello.elf: ../../user/hello.rs
 	@$(MAKE) all -C ../../user/ CFLAGS="-m32 -target $(TARGET)" RUSTCFLAGS="$(RUSTCFLAGS) -L ../arch/i686/$(BDIR)" SHELL=$(SHELL)
 
 $(BDIR)/initram.elf: ../../user/hello.elf
