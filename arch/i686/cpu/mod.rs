@@ -1,7 +1,7 @@
 use core::mem::size_of;
 use core::mem::uninit;
 use core::option::{Option, None, Some};
-use core::slice::Slice;
+use core::slice;
 use core;
 
 pub use self::idt::IdtEntry;

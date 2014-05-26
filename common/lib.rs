@@ -44,31 +44,6 @@ pub mod kernel;
 #[macro_escape]
 mod rust_core;
 
-mod arch {
-    pub mod common;
+#[path = "../arch/mod.rs"]
+mod arch;
 
-    #[cfg(target_arch = "x86")]
-    pub mod i686 {
-        pub mod cpu;
-        pub mod io;
-        pub mod drivers;
-        #[allow(dead_code)]
-        pub mod runtime;
-    }
-
-    #[cfg(target_arch = "x86_64")]
-    pub mod x86_64 {
-        pub mod cpu;
-        pub mod io;
-        pub mod drivers;
-        pub mod runtime;
-        pub mod efi;
-    }
-
-    #[cfg(target_arch = "arm")]
-    pub mod arm {
-        pub mod cpu;
-        pub mod io;
-        pub mod drivers;
-    }
-}
