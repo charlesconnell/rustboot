@@ -1,8 +1,8 @@
-use core::ptr::{copy_nonoverlapping_memory, set_memory, offset};
+use core::ptr::{copy_nonoverlapping_memory, set_memory};
+use core::intrinsics::offset;
 use core::mem::transmute;
 use core::option::{Option, Some, None};
-use core::str::as_bytes;
-use core::slice::to_ptr;
+use core::str::StrSlice;
 use core;
 
 use kernel::process::Process;

@@ -1,4 +1,3 @@
-use core::fail::abort;
 use core::mem::transmute;
 
 use kernel::heap;

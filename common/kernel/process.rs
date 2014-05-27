@@ -1,5 +1,5 @@
 use core::clone::Clone;
-use core::mem::transmute;
+use core::intrinsics::transmute;
 
 use kernel::mm::{Flags, PageDirectory};
 use kernel::mm::physical;
