@@ -1,4 +1,4 @@
-use core::option::{Option, Some, None};
+use core::option::{Some};
 use core::mem::uninit;
 
 use platform::{cpu, io, drivers};

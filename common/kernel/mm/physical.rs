@@ -6,7 +6,7 @@ use kernel::mm::Allocator;
 use cpu::mmu::Frame;
 use util::bitv;
 
-use rust_core::fail::{abort, out_of_memory};
+use rust_core::fail::abort;
 
 pub static mut frames: *mut FrameAllocator = 0 as *mut FrameAllocator;
 

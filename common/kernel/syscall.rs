@@ -1,5 +1,3 @@
-use core::slice;
-use core::str::StrSlice;
 use core::mem::transmute;
 
 use platform = arch::i686;

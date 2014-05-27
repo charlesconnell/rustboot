@@ -1,5 +1,4 @@
 use core::mem::size_of;
-use core::ptr::{RawPtr, mut_null};
 use core::option::{Option, Some, None};
 
 use kernel::util::int::uint_mul_with_overflow;
