@@ -1,4 +1,5 @@
 use core::mem::size_of;
+use core::ptr::{RawPtr, mut_null};
 use core::option::{Option, Some, None};
 
 use kernel::util::int::uint_mul_with_overflow;
@@ -24,7 +25,7 @@ pub fn init() -> Alloc {
 #[lang = "exchange_malloc"]
 #[inline]
 pub unsafe fn malloc_raw(size: uint) -> *mut u8 {
-    match heap.get().alloc(size) {
+    match get(heap).alloc(size) {
         (_, 0) => out_of_memory(),
         (ptr, _) => ptr
     }
@@ -33,7 +34,7 @@ pub unsafe fn malloc_raw(size: uint) -> *mut u8 {
 #[lang = "exchange_free"]
 #[inline]
 pub unsafe fn free(ptr: *mut u8) {
-    heap.get().free(ptr);
+    get(heap).free(ptr);
 }
 
 #[inline]
@@ -48,7 +49,7 @@ pub unsafe fn alloc<T = u8>(count: uint) -> *mut T {
 pub unsafe fn zero_alloc<T = u8>(count: uint) -> *mut T {
     match uint_mul_with_overflow(count, size_of::<T>()) {
         (_, true) => out_of_memory(),
-        (size, _) => match heap.get().zero_alloc(size) {
+        (size, _) => match get(heap).zero_alloc(size) {
             (_, 0) => out_of_memory(),
             (ptr, _) => ptr as *mut T
         }
@@ -63,9 +64,17 @@ pub unsafe fn realloc_raw<T>(ptr: *mut T, count: uint) -> *mut T {
             free(ptr as *mut u8);
             0 as *mut T
         }
-        (size, _) => match heap.get().realloc(ptr as *mut u8, size) {
+        (size, _) => match get(heap).realloc(ptr as *mut u8, size) {
             (_, 0) => out_of_memory(),
             (ptr, _) => ptr as *mut T
         }
+    }
+}
+
+// because no .expect() from lib std
+fn get<T>(opt : Option<T>) -> T {
+    match opt {
+        Some(val) => val,
+        None => abort(),
     }
 }
