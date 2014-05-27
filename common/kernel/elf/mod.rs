@@ -125,8 +125,8 @@ impl self::Phdr {
 impl ELFIdent {
     unsafe fn load(&self) -> Option<&Ehdr> {
         // TODO: check endianness
-        let MAGIC: *u32 = to_ptr(as_bytes("\u007fELF")) as *u32;
-        if *MAGIC != transmute(self.ei_mag) {
+        static MAGIC_STRING : &'static str = "\u007fELF";
+        if *(MAGIC_STRING.as_ptr() as *u32) != transmute(self.ei_mag) {
             return None;
         }
 
