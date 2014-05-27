@@ -7,132 +7,132 @@ use util::int;
 use util::ptr::mut_offset;
 
 // rust-bindgen generated bindings
-pub type Elf32_Half = c_ushort;
-pub type Elf32_Word = c_uint;
-pub type Elf32_Sword = c_int;
-pub type Elf32_Xword = c_ulong;
-pub type Elf32_Sxword = c_long;
-pub type Elf32_Addr = c_uint;
-pub type Elf32_Off = c_uint;
-pub type Elf32_Section = c_ushort;
-pub type Elf32_Symndx = c_uint;
+pub type Half = c_ushort;
+pub type Word = c_uint;
+pub type Sword = c_int;
+pub type Xword = c_ulong;
+pub type Sxword = c_long;
+pub type Addr = c_uint;
+pub type Off = c_uint;
+pub type Section = c_ushort;
+pub type Symndx = c_uint;
 type c_uchar = u8;
 type c_void = uint;
 
 #[packed]
 pub struct Ehdr {
     pub e_ident: [c_uchar, ..16u],
-    pub e_type: Elf32_Half,
-    pub e_machine: Elf32_Half,
-    pub e_version: Elf32_Word,
-    pub e_entry: Elf32_Addr,
-    pub e_phoff: Elf32_Off,
-    pub e_shoff: Elf32_Off,
-    pub e_flags: Elf32_Word,
-    pub e_ehsize: Elf32_Half,
-    pub e_phentsize: Elf32_Half,
-    pub e_phnum: Elf32_Half,
-    pub e_shentsize: Elf32_Half,
-    pub e_shnum: Elf32_Half,
-    pub e_shstrndx: Elf32_Half,
+    pub e_type: Half,
+    pub e_machine: Half,
+    pub e_version: Word,
+    pub e_entry: Addr,
+    pub e_phoff: Off,
+    pub e_shoff: Off,
+    pub e_flags: Word,
+    pub e_ehsize: Half,
+    pub e_phentsize: Half,
+    pub e_phnum: Half,
+    pub e_shentsize: Half,
+    pub e_shnum: Half,
+    pub e_shstrndx: Half,
 }
 
 #[packed]
 pub struct Phdr {
     pub p_type: super::HeaderType,
-    pub p_offset: Elf32_Off,
-    pub p_vaddr: Elf32_Addr,
-    pub p_paddr: Elf32_Addr,
-    pub p_filesz: Elf32_Word,
-    pub p_memsz: Elf32_Word,
+    pub p_offset: Off,
+    pub p_vaddr: Addr,
+    pub p_paddr: Addr,
+    pub p_filesz: Word,
+    pub p_memsz: Word,
     pub p_flags: super::HeaderFlags,
-    pub p_align: Elf32_Word,
+    pub p_align: Word,
 }
 
 #[packed]
-pub struct Elf32_Shdr {
-    sh_name: Elf32_Word,
-    sh_type: Elf32_Word,
-    sh_flags: Elf32_Word,
-    sh_addr: Elf32_Addr,
-    sh_offset: Elf32_Off,
-    sh_size: Elf32_Word,
-    sh_link: Elf32_Word,
-    sh_info: Elf32_Word,
-    sh_addralign: Elf32_Word,
-    sh_entsize: Elf32_Word,
+pub struct Shdr {
+    sh_name: Word,
+    sh_type: Word,
+    sh_flags: Word,
+    sh_addr: Addr,
+    sh_offset: Off,
+    sh_size: Word,
+    sh_link: Word,
+    sh_info: Word,
+    sh_addralign: Word,
+    sh_entsize: Word,
 }
 
-pub struct Elf32_Sym {
-    st_name: Elf32_Word,
-    st_value: Elf32_Addr,
-    st_size: Elf32_Word,
+pub struct Sym {
+    st_name: Word,
+    st_value: Addr,
+    st_size: Word,
     st_info: c_uchar,
     st_other: c_uchar,
-    st_shndx: Elf32_Section,
+    st_shndx: Section,
 }
 
-pub struct Elf32_Syminfo {
-    si_boundto: Elf32_Half,
-    si_flags: Elf32_Half,
+pub struct Syminfo {
+    si_boundto: Half,
+    si_flags: Half,
 }
 
-pub struct Elf32_Rel {
-    r_offset: Elf32_Addr,
-    r_info: Elf32_Word,
+pub struct Rel {
+    r_offset: Addr,
+    r_info: Word,
 }
 
-pub struct Elf32_Rela {
-    r_offset: Elf32_Addr,
-    r_info: Elf32_Word,
-    r_addend: Elf32_Sword,
+pub struct Rela {
+    r_offset: Addr,
+    r_info: Word,
+    r_addend: Sword,
 }
 
 pub struct Union_Unnamed1 {
     data: [c_uchar, ..4u],
 }
 impl Union_Unnamed1 {
-    pub fn d_val(&mut self) -> *mut Elf32_Word {
+    pub fn d_val(&mut self) -> *mut Word {
         unsafe { transmute(self) }
     }
-    pub fn d_ptr(&mut self) -> *mut Elf32_Addr {
+    pub fn d_ptr(&mut self) -> *mut Addr {
         unsafe { transmute(self) }
     }
 }
-pub struct Elf32_Dyn {
-    d_tag: Elf32_Sword,
+pub struct Dyn {
+    d_tag: Sword,
     d_un: Union_Unnamed1,
 }
 
-pub struct Elf32_Verdef {
-    vd_version: Elf32_Half,
-    vd_flags: Elf32_Half,
-    vd_ndx: Elf32_Half,
-    vd_cnt: Elf32_Half,
-    vd_hash: Elf32_Word,
-    vd_aux: Elf32_Word,
-    vd_next: Elf32_Word,
+pub struct Verdef {
+    vd_version: Half,
+    vd_flags: Half,
+    vd_ndx: Half,
+    vd_cnt: Half,
+    vd_hash: Word,
+    vd_aux: Word,
+    vd_next: Word,
 }
 
-pub struct Elf32_Verdaux {
-    vda_name: Elf32_Word,
-    vda_next: Elf32_Word,
+pub struct Verdaux {
+    vda_name: Word,
+    vda_next: Word,
 }
 
-pub struct Elf32_Verneed {
-    vn_version: Elf32_Half,
-    vn_cnt: Elf32_Half,
-    vn_file: Elf32_Word,
-    vn_aux: Elf32_Word,
-    vn_next: Elf32_Word,
+pub struct Verneed {
+    vn_version: Half,
+    vn_cnt: Half,
+    vn_file: Word,
+    vn_aux: Word,
+    vn_next: Word,
 }
 
-pub struct Elf32_Vernaux {
-    vna_hash: Elf32_Word,
-    vna_flags: Elf32_Half,
-    vna_other: Elf32_Half,
-    vna_name: Elf32_Word,
-    vna_next: Elf32_Word,
+pub struct Vernaux {
+    vna_hash: Word,
+    vna_flags: Half,
+    vna_other: Half,
+    vna_name: Word,
+    vna_next: Word,
 }
 
 pub struct AuxvValue {
@@ -219,24 +219,24 @@ pub enum AuxvType {
     AT_L3_CACHESHAPE  = 37
 }
 
-pub struct Elf32_Nhdr {
-    n_namesz: Elf32_Word,
-    n_descsz: Elf32_Word,
-    n_type: Elf32_Word,
+pub struct Nhdr {
+    n_namesz: Word,
+    n_descsz: Word,
+    n_type: Word,
 }
 
 pub struct Struct_Unnamed5 {
-    gt_current_g_value: Elf32_Word,
-    gt_unused: Elf32_Word,
+    gt_current_g_value: Word,
+    gt_unused: Word,
 }
 pub struct Struct_Unnamed6 {
-    gt_g_value: Elf32_Word,
-    gt_bytes: Elf32_Word,
+    gt_g_value: Word,
+    gt_bytes: Word,
 }
-pub struct Elf32_gptab {
+pub struct gptab {
     data: [c_uchar, ..8u],
 }
-impl Elf32_gptab {
+impl gptab {
     pub fn gt_header(&mut self) -> *mut Struct_Unnamed5 {
         unsafe { transmute(self) }
     }
@@ -244,27 +244,27 @@ impl Elf32_gptab {
         unsafe { transmute(self) }
     }
 }
-pub struct Elf32_RegInfo {
-    ri_gprmask: Elf32_Word,
-    ri_cprmask: [Elf32_Word, ..4u],
-    ri_gp_value: Elf32_Sword,
+pub struct RegInfo {
+    ri_gprmask: Word,
+    ri_cprmask: [Word, ..4u],
+    ri_gp_value: Sword,
 }
 pub struct Elf_Options {
     kind: c_uchar,
     size: c_uchar,
-    section: Elf32_Section,
-    info: Elf32_Word,
+    section: Section,
+    info: Word,
 }
 pub struct Elf_Options_Hw {
-    hwp_flags1: Elf32_Word,
-    hwp_flags2: Elf32_Word,
+    hwp_flags1: Word,
+    hwp_flags2: Word,
 }
-pub struct Elf32_Lib {
-    l_name: Elf32_Word,
-    l_time_stamp: Elf32_Word,
-    l_checksum: Elf32_Word,
-    l_version: Elf32_Word,
-    l_flags: Elf32_Word,
+pub struct Lib {
+    l_name: Word,
+    l_time_stamp: Word,
+    l_checksum: Word,
+    l_version: Word,
+    l_flags: Word,
 }
 
-pub type Elf32_Conflict = Elf32_Addr;
+pub type Conflict = Addr;
