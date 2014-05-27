@@ -68,8 +68,9 @@ syscall!(fn read(fd: uint, buf: *u8, count: uint) -> uint {
 
 syscall!(fn write(fd: uint, buf: *u8, count: uint) -> uint {
     unsafe {
-        platform::io::puts(transmute(slice::Slice { data: buf, len: count }));
-    }
+        ::core::slice::raw::buf_as_slice(
+            buf, count, |slice| platform::io::puts(slice));
+    };
     count
 })
 
