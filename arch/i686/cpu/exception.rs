@@ -1,5 +1,8 @@
 use core::mem::transmute;
 
+use core::failure;
+use core::fmt;
+
 use platform::io;
 use cpu::Context;
 use cpu::idt;
@@ -51,6 +54,13 @@ static Exceptions: &'static [&'static str] = &[
     "SIMD Floating-Point Exception",
     "Virtualization Exception",
 ];
+
+// TODO respect destructors
+#[lang="begin_unwind"]
+unsafe extern "C" fn begin_unwind(fmt: &fmt::Arguments, file: &str, line: uint) -> ! {
+    asm!("hlt");
+    loop { }; // for divergence check
+}
 
 #[no_split_stack]
 #[inline(never)]

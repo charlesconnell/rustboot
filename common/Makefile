@@ -4,19 +4,25 @@
 # need to create new variable due to semantics of make "recursive variables"
 GCC_PREFIX_2   ?= $(GCC_PREFIX)
 
+ifdef DEBUG
+MORE_FLAGS     ?= -g
+else
+MORE_FLAGS     ?= -O3
+endif
+
 RUSTC          ?= $(RUST_ROOT)/bin/rustc
-RUSTCFLAGS     ?= -O --target $(TARGET) -Z no-landing-pads -g
+RUSTCFLAGS     ?= --target $(TARGET) -Z no-landing-pads -Z lto $(MORE_FLAGS)
 
 # CC is probably defined (as GCC)
 CC              = $(LLVM_ROOT)/bin/clang
-CFLAGS         ?= -O3 -ffreestanding -target $(TARGET)
+CFLAGS         ?= -ffreestanding -target $(TARGET) $(MORE_FLAGS)
 
 LLC            ?= $(LLVM_ROOT)/bin/llc
 
 # AS is probably defined
 AS              = $(GCC_PREFIX_2)as
 LD             ?= $(GCC_PREFIX_2)ld
-GDB            ?= $(GCC_PREFIX_2)gdb
+GDB            ?= $(GCC_PREFIX_2)gdbtui
 OBJCOPY        ?= $(GCC_PREFIX_2)objcopy
 
 BDIR           ?= ./boot
@@ -26,8 +32,7 @@ DEP_SCRIPT     ?= 's~\($(DEP_KEEP)\)~\n\1~g;s~ \S*$(DEP_RM)\S*~~g;s~\n\($(DEP_KE
 
 # Compile rustboot. Produce dependency info
 $(BDIR)/main.bc: ../../common/lib.rs
-	$(RUSTC) $(RUSTCFLAGS) -L $(BDIR) --out-dir $(BDIR) \
-		--crate-type=lib --dep-info --emit=bc $<
+	$(RUSTC) $(RUSTCFLAGS) -L $(BDIR) --out-dir $(BDIR) --dep-info --emit=bc $<
 	@sed -i $(DEP_SCRIPT) $(BDIR)/main.d
 
 # initram
