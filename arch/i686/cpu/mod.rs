@@ -6,7 +6,6 @@ use core;
 
 pub use self::idt::IdtEntry;
 use util::rt;
-use util::ptr::mut_offset;
 use cpu::exception::{Breakpoint, exception_handler};
 use kernel::heap;
 use kernel::Kernel;
