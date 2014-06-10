@@ -1,13 +1,10 @@
 use core::ptr::RawPtr;
+use core::prelude::*;
 // use core::mem::transmute;
 //use core::cmp::expect;
 
 use rust_core::c_types::c_int;
 
-use util::int::range;
-// use util::ptr::mut_offset;
-use util::int::range;
-use kernel;
 
 mod stack;
 
@@ -124,11 +121,11 @@ pub fn sse2_dmem_movdqa_add(mut dest: *mut u8, c: u32, inc: u32, n: uint) {
               pslld xmm1, 2"
             :: "r"(inc), "r"(c)
             :: "intel")
-        range(0, n, |_| {
+        for _ in range(0, n) {
             asm!("movdqa [$0], xmm0
-                  paddd xmm0, xmm1" :: "r"(dest) :: "intel")
+                  paddd xmm0, xmm1" :: "r"(dest) :: "intel");
             dest = dest.offset(16);
-        });
+        }
     }
 }
 

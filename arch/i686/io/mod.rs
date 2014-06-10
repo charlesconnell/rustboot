@@ -4,7 +4,6 @@ use core::slice::ImmutableVector;
 use core::iter::Iterator;
 
 use super::drivers::vga;
-use util::int;
 
 static mut pos: int = 0;
 
@@ -49,16 +48,10 @@ pub fn putc(c: u8) {
 }
 
 pub fn puti(num: int) {
-    int::to_str_bytes(num, 10, |n| {
-        putc(n);
-    });
 }
 
 pub fn putx(num: uint) {
     puts("0x");
-    int::to_str_bytes(num as int, 16, |n| {
-        putc(n);
-    });
 }
 
 pub fn puts(s: &str) {
