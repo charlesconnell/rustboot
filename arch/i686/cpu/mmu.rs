@@ -1,4 +1,4 @@
-use core::mem::{transmute, size_of};
+use core::mem::size_of;
 use core::ptr::copy_nonoverlapping_memory;
 use core::prelude::*;
 use core;
@@ -11,7 +11,6 @@ use super::exception::{PageFault, exception_handler};
 
 pub type Frame = [u8, ..PAGE_SIZE];
 
-// 32380 => 32460 bytes!
 define_flags!(Flags: uint {
     PRESENT  = 1 << 0,
     RW       = 1 << 1,
@@ -28,13 +27,16 @@ static PAGE_SIZE_LOG2: uint = 12;
 static ENTRIES:   uint = 1024;
 
 static DIR_VADDR: uint = 0xFFFFF000;
-static TEMP1: uint = 0xFF7FF000;
 
-static directory_temp_tables: *mut Directory = 0xFF800000_u as *mut Directory;
-static directory_temp: *mut PageDirectory = 0xFFBFF000_u as *mut PageDirectory;
+struct VMemLayout {
+    temp1: PageDirectory,                    // @ 0xFF7FF000
+    temp_tables: [PageTable, ..ENTRIES - 1], // @ 0xFF800000
+    temp: PageDirectory,                     // @ 0xFFBFF000
+    tables: [PageTable, ..ENTRIES - 1],      // @ 0xFFC00000
+    dir: PageDirectory                       // @ 0xFFFFF000
+}
 
-static directory_tables: *mut Directory = 0xFFC00000_u as *mut Directory;
-pub static directory: *mut PageDirectory = DIR_VADDR as *mut PageDirectory;
+static VMEM: *mut VMemLayout = 0xFF7FF000 as *mut VMemLayout;
 
 // U: underlying element type
 #[packed]
@@ -79,7 +81,7 @@ fn enable_paging() {
 }
 
 pub unsafe fn map_frame(page_ptr: *mut u8, flags: Flags) {
-    (*directory).map_frame(page_ptr, flags);
+    (*VMEM).dir.map_frame(page_ptr, flags);
 }
 
 #[inline]
@@ -99,9 +101,8 @@ impl Page {
     }
 
     fn physical<P>(&self) -> Phys<P> {
-        match *self {
-            Page(p) => Phys::at(p & 0xFFFFF000)
-        }
+        let &Page(p) = self;
+        Phys::at(p & 0xFFFFF000)
     }
 
     fn present(self) -> bool {
@@ -184,24 +185,35 @@ impl Table<Table<Page>> {
     }
 
     fn map_self(&mut self, this: Phys<PageDirectory>) {
-        self.set(directory as uint, Page::new(this, PRESENT | RW));
+        self.set(DIR_VADDR as uint, Page::new(this, PRESENT | RW));
     }
 
     pub fn clone(&self) -> Phys<PageDirectory> {
         unsafe {
             // new directory
             let dir_phys: Phys<PageDirectory> = (*physical::frames).zero_alloc(1);
-            (*directory).set_page(transmute(TEMP1), dir_phys, PRESENT | RW);
-            let dir_temp: *mut PageDirectory = transmute(TEMP1);
 
-            (*dir_temp).map_self(dir_phys);
+            let &VMemLayout { ref mut temp1, ref mut dir, .. } = &mut *VMEM;
+            dir.set_page(temp1, dir_phys, PRESENT | RW);
+            temp1.map_self(dir_phys);
 
             let cnt = 0xC0000000 / (ENTRIES * PAGE_SIZE);
-            copy_nonoverlapping_memory(dir_temp as *mut Page, &self.entries as *Page, cnt);
+            copy_nonoverlapping_memory(&mut temp1.entries as *mut Page, &self.entries as *Page, cnt);
 
             dir_phys
         }
     }
+}
+
+pub fn clone_directory() -> Phys<PageDirectory> {
+    unsafe {
+        (*VMEM).dir.clone()
+    }
+}
+
+// FIXME make uses of this function obsolete
+pub fn get_dir() -> &'static mut PageDirectory {
+    unsafe { &'static mut (*VMEM).dir }
 }
 
 // impl Clone for Table<Table<Page>> {
