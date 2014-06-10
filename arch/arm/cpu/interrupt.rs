@@ -1,5 +1,7 @@
-use core::mem::{volatile_store, transmute};
-use core::intrinsics::offset;
+use core::intrinsics::{offset, transmute, volatile_store};
+
+use core::failure;
+use core::fmt;
 
 use kernel;
 use platform::io;
@@ -108,6 +110,12 @@ pub unsafe fn debug() {
 
 unsafe fn handler() {
     kernel::syscall::handler(&mut kernel::syscall::args(0, 0, 0, 0));
+}
+
+// TODO respect destructors
+#[lang="begin_unwind"]
+unsafe extern "C" fn begin_unwind(fmt: &fmt::Arguments, file: &str, line: uint) -> ! {
+    loop { };
 }
 
 /*

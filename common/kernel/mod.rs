@@ -63,6 +63,9 @@ impl Kernel {
     }
 }
 
+#[lang = "stack_exhausted"] extern fn stack_exhausted() {}
+#[lang = "eh_personality"] extern fn eh_personality() {}
+
 #[lang="start"]
 #[no_mangle]
 pub fn main() {

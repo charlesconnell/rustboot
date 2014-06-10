@@ -1,20 +1,22 @@
+
 include ../../common/Makefile
 
 GCC_PREFIX_2    = $(GCC_PREFIX)arm-none-eabi-
 
-TARGET         ?= arm-linux-noeabi
+TARGET         ?= arm-unknown-linux-gnueabi
 
-LLCFLAGS       ?= -mtriple=$(TARGET) $(MORE_FLAGS) \
+LLCFLAGS       ?= -mtriple=$(TARGET) $(MAYBE_OPTIMIZE) \
 	-march=arm -mcpu=arm926ej-s --float-abi=hard -asm-verbose
 
 QEMU           ?= qemu-system-arm
 
-OBJS           ?= $(BDIR)/loader.o $(BDIR)/aeabi_runtime.o $(BDIR)/main.o $(BDIR)/core.o
+OBJS           ?= $(BDIR)/loader.o $(BDIR)/aeabi_runtime.o $(BDIR)/main.o
 LINK           ?= $(BDIR)/linker.ld $(OBJS) $(BDIR)/initram.elf.embed
 
 DEP_RM         ?= arch/
 DEP_KEEP       ?= arch/arm
 
+LD             = $(GCC_PREFIX_2)ld
 
 .PHONY: all run debug
 

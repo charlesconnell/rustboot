@@ -136,7 +136,7 @@ impl PageDirectory {
         // TODO
     }
 
-    pub unsafe fn clone(&mut self) -> *mut PageDirectory {
-        self as *mut PageDirectory
+    pub unsafe fn clone(&mut self) -> Phys<PageDirectory> {
+        Phys::at(self as *mut PageDirectory as uint)
     }
 }
