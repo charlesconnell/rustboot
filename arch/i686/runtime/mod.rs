@@ -170,3 +170,12 @@ pub fn memmove(dest: *mut u8, src: *u8, n: uint) {
         }
     }
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn memcmp(s1: *u8, s2: *u8, n: int) -> int {
+    let result;
+    asm!("cld
+          cmp ecx, ecx
+          rep cmpsb" : "=A"(result) : "{edi}"(s2), "{esi}"(s1), "{ecx}"(n) :: "intel");
+    result
+}

@@ -180,8 +180,7 @@ pub fn init(kernel: &mut Kernel) -> physical::Phys<mmu::PageDirectory> {
 
 pub fn info() {
     unsafe {
-        use platform::io;
         let (a, _, _, _) = cpuid!(0);
-        io::puti(a as int);
+        println!("{}", a);
     }
 }

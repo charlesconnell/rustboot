@@ -8,6 +8,7 @@ use cpu::Context;
 use cpu::idt;
 use kernel::heap;
 use kernel::mm::Allocator;
+use common::x86::reg;
 
 #[repr(u8)]
 pub enum Fault {
@@ -65,8 +66,7 @@ unsafe extern "C" fn begin_unwind(fmt: &fmt::Arguments, file: &str, line: uint) 
 #[no_split_stack]
 #[inline(never)]
 unsafe fn blue_screen(stack: &Context) {
-    io::puts("Exception ");
-    io::puts(Exceptions[stack.int_no as uint]);
+    println!("Exception {}", Exceptions[stack.int_no as uint]);
     asm!("hlt");
 }
 
@@ -81,11 +81,7 @@ pub unsafe fn exception_handler() -> unsafe extern "C" fn() {
     let stack_ptr = Context::save();
 
     if stack_ptr.int_no as u8 == PageFault as u8 {
-        let mut value: u32;
-        asm!("mov %cr2, $0" : "=r"(value));
-        io::putx((value >> 8) as uint);
-        io::putc(' ' as u8);
-        io::putx(stack_ptr.call_stack.eip as uint);
+        println!("Accessed {}", reg::CR2::read());
     }
 
     if stack_ptr.int_no as u8 == transmute(Breakpoint) {

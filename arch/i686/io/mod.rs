@@ -2,6 +2,8 @@ use core::option::{Some, None};
 use core::str::StrSlice;
 use core::slice::ImmutableVector;
 use core::iter::Iterator;
+use core::fmt;
+use core::result::Ok;
 
 use super::drivers::vga;
 
@@ -47,15 +49,23 @@ pub fn putc(c: u8) {
     }
 }
 
-pub fn puti(num: int) {
-}
+struct Writer;
 
-pub fn putx(num: uint) {
-    puts("0x");
-}
-
-pub fn puts(s: &str) {
-    for c in s.as_bytes().iter() {
-        putc(*c);
+impl Writer {
+    fn write_fmt(&mut self, fmt: &fmt::Arguments) {
+        fmt::write(self, fmt);
     }
+}
+
+impl fmt::FormatWriter for Writer {
+    fn write(&mut self, bytes: &[u8]) -> fmt::Result {
+        for &c in bytes.iter() {
+            putc(c);
+        }
+        Ok(())
+    }
+}
+
+pub fn println_args(fmt: &fmt::Arguments) {
+    writeln!(Writer, "{}", fmt);
 }

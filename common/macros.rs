@@ -187,3 +187,11 @@ macro_rules! asmv(
         $e:expr
     ) => (asm!($e :::: "volatile", "intel"))
 )
+
+macro_rules! breakpoint(
+    () => ( ::rust_core::fail::breakpoint() )
+)
+
+macro_rules! println(
+    ($($arg:tt)*) => (format_args!(::platform::io::println_args, $($arg)*))
+)

@@ -47,3 +47,7 @@ mod rust_core;
 #[path = "../arch/mod.rs"]
 mod arch;
 
+mod std {
+	pub use core::fmt;
+	pub use core::option;
+}

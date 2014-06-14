@@ -1,6 +1,7 @@
 use core::mem::size_of;
-use core::ptr::copy_nonoverlapping_memory;
+use core::ptr::{copy_nonoverlapping_memory, set_memory};
 use core::prelude::*;
+use core::fmt;
 use core;
 
 use kernel::mm::physical;
@@ -22,12 +23,12 @@ define_flags!(Flags: uint {
 #[packed]
 pub struct Page(pub uint);
 
+static LOG2_PAGE_SIZE: uint = 12;
 pub static PAGE_SIZE: uint = 0x1000;
-static PAGE_SIZE_LOG2: uint = 12;
+
 static ENTRIES:   uint = 1024;
 
-static DIR_VADDR: uint = 0xFFFFF000;
-
+#[packed]
 struct VMemLayout {
     temp1: PageDirectory,                    // @ 0xFF7FF000
     temp_tables: [PageTable, ..ENTRIES - 1], // @ 0xFF800000
@@ -37,6 +38,7 @@ struct VMemLayout {
 }
 
 static VMEM: *mut VMemLayout = 0xFF7FF000 as *mut VMemLayout;
+static DIR_VADDR: uint = 0xFFFFF000;
 
 // U: underlying element type
 #[packed]
@@ -53,7 +55,7 @@ pub type PageTable = Table<Page>;
 pub type PageDirectory = Table<Table<Page>>;
 
 pub unsafe fn init(kernel: &mut Kernel) -> Phys<PageDirectory> {
-    let dir: Phys<PageDirectory> = kernel.zero_alloc_frames(1);
+    let dir: Phys<PageDirectory> = kernel.alloc_frames(1);
     let table: Phys<PageTable>   = kernel.alloc_frames(1);
 
     (*table.as_ptr()).identity_map(0, PRESENT | RW);
@@ -128,9 +130,34 @@ impl core::ops::BitAnd<Flags, bool> for Page {
     }
 }
 
+impl fmt::Show for Page {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let &Page(p) = self;
+        let page = p & 0xFFFFF000;
+        let (p, r, u, a) = (
+            if self & PRESENT  { 'P' } else { ' ' },
+            if self & RW       { 'R' } else { ' ' },
+            if self & USER     { 'U' } else { ' ' },
+            if self & ACCESSED { 'A' } else { ' ' }
+        );
+        write!(fmt, "0x{:x}({}{}{}{})", page, p, r, u, a)
+    }
+}
+
+impl fmt::Show for Flags {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let (p, r, u, a) = (
+            if (self & PRESENT).is_zero()  { ' ' } else { 'P' },
+            if (self & RW      ).is_zero() { ' ' } else { 'R' },
+            if (self & USER    ).is_zero() { ' ' } else { 'U' },
+            if (self & ACCESSED).is_zero() { ' ' } else { 'A' }
+        );
+        write!(fmt, "{}{}{}{}", p, r, u, a)
+    }
+}
+
 impl<U> Table<U> {
     fn set_addr<S, T>(&mut self, vaddr: *mut S, phys: Phys<T>, flags: Flags) {
-        // FIXME error: internal compiler error: missing default for a not explicitely provided type param
         self.set(vaddr as uint, Page::new(phys, flags));
         flush_tlb(vaddr);
     }
@@ -157,7 +184,7 @@ impl Table<Page> {
     }
 }
 
-// Can't impl on typedefs. Rust #9767
+// FIXME(Rust #9767): Can't impl on typedefs.
 impl Table<Table<Page>> {
     fn fetch_table<T>(&mut self, vptr: *mut T, flags: Flags) -> *mut PageTable {
         match self.get(vptr as uint) {
@@ -165,9 +192,16 @@ impl Table<Table<Page>> {
                 table.physical().as_ptr()
             }
             _ => unsafe { // allocate table
-                let table: Phys<PageTable> = (*physical::frames).zero_alloc(1);
-                self.set_addr(vptr, table, flags); // page fault
-                // flush_tlb(table);
+                let table: Phys<PageTable> = (*physical::frames).alloc(1);
+
+                let size = ENTRIES * PAGE_SIZE;
+                let index = (vptr as uint / size) & (ENTRIES - 1);
+                self.entries[index] = Page::new(table, flags);
+
+                let t = &mut (*VMEM).tables[index];
+                flush_tlb(t);
+                set_memory(t, 0, 1);
+
                 table.as_ptr()
             }
         }
@@ -190,13 +224,14 @@ impl Table<Table<Page>> {
 
     pub fn clone(&self) -> Phys<PageDirectory> {
         unsafe {
-            // new directory
-            let dir_phys: Phys<PageDirectory> = (*physical::frames).zero_alloc(1);
-
+            // Allocate a single page
+            let dir_phys: Phys<PageDirectory> = (*physical::frames).alloc(1);
+            // Create a blank directory
             let &VMemLayout { ref mut temp1, ref mut dir, .. } = &mut *VMEM;
             dir.set_page(temp1, dir_phys, PRESENT | RW);
+            set_memory(temp1, 0, 1);
             temp1.map_self(dir_phys);
-
+            // Copy entries
             let cnt = 0xC0000000 / (ENTRIES * PAGE_SIZE);
             copy_nonoverlapping_memory(&mut temp1.entries as *mut Page, &self.entries as *Page, cnt);
 
@@ -215,34 +250,3 @@ pub fn clone_directory() -> Phys<PageDirectory> {
 pub fn get_dir() -> &'static mut PageDirectory {
     unsafe { &'static mut (*VMEM).dir }
 }
-
-// impl Clone for Table<Table<Page>> {
-//     #[inline(always)]
-//     fn clone(&self) -> Table<Table<Page>> {
-//         unsafe {
-//             // new directory
-//             let dir_phys: Phys<PageDirectory> = physical::zero_alloc_frames(1);
-//             let dir_temp = (*directory).set_page(transmute(TEMP1), dir_phys, PRESENT | RW | USER);
-
-//             rt::breakpoint();
-//             (*dir_temp).set(directory as uint, Page::new(dir_phys, PRESENT | RW));
-//             (*dir_temp).set(0, self.get(0));
-
-//             let mut i = (ENTRIES * PAGE_SIZE) as uint;
-//             while i < 0xC0000000 {
-//                 (*dir_temp).set(i, self.get(i));
-
-//                 i += PAGE_SIZE as uint;
-//             }
-
-//             *dir_phys.as_ptr()
-//         }
-//     }
-// }
-
-// impl DeepClone for Table<Table<Page>> {
-//     #[inline(always)]
-//     fn deep_clone(&self) -> Table<Table<Page>> {
-//         *self
-//     }
-// }

@@ -47,8 +47,7 @@ pub fn handler(ctx: &mut Context) {
         //     getuid(ctx)
         // }
         _ => {
-            platform::io::puti(ctx.eax as int);
-            platform::io::putc(' ' as u8);
+            println!("{}", ctx.eax);
         }
     }
 }
@@ -57,7 +56,7 @@ pub fn init() {
 }
 
 syscall!(fn exit(error_code: int) -> uint {
-    platform::io::puti(error_code as int);
+    println!("{}", error_code);
     0
 })
 
@@ -68,7 +67,7 @@ syscall!(fn read(fd: uint, buf: *u8, count: uint) -> uint {
 syscall!(fn write(fd: uint, buf: *u8, count: uint) -> uint {
     unsafe {
         ::core::slice::raw::buf_as_slice(
-            buf, count, |slice| platform::io::puts(transmute(slice)));
+            buf, count, |slice| println!("{}", slice));
     };
     count
 })
