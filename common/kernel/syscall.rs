@@ -1,7 +1,8 @@
 use core::mem::transmute;
 
-use platform = arch::i686;
-use cpu::Context;
+use platform::cpu::Context;
+use kernel::elf;
+use kernel::process::Process;
 
 macro_rules! syscall(
     (fn $name:ident($($param:ident: $T:ty),*) -> $ret:ty $func:expr) => (
@@ -10,7 +11,7 @@ macro_rules! syscall(
                 [$($param),*, ..] => {
                     $(let $param = $param as $T;)*
                     let ret: $ret = { $func };
-                    regs.eax = ret as u32;
+                    regs.set_arg(ret);
                 }
             }
         }
@@ -18,7 +19,7 @@ macro_rules! syscall(
 )
 
 pub fn handler(ctx: &mut Context) {
-    match ctx.eax {
+    match ctx.get_arg() {
         1 => {
             exit(ctx)
         }
@@ -34,6 +35,9 @@ pub fn handler(ctx: &mut Context) {
         6 => {
             close(ctx)
         }
+        11 => {
+            execve(ctx)
+        }
         // 12 => {
         //     chdir(ctx)
         // }
@@ -46,8 +50,8 @@ pub fn handler(ctx: &mut Context) {
         // 25 => {
         //     getuid(ctx)
         // }
-        _ => {
-            println!("{}", ctx.eax);
+        other => {
+            println!("{}", other);
         }
     }
 }
@@ -88,10 +92,19 @@ syscall!(fn setuid(uid: uint) -> uint {
     0
 })
 
+syscall!(fn execve(x: uint) -> uint {
+    // TODO: accept arguments
+    elf::load(&_binary_initram_elf_start).map(|addr| {
+        Process::jump(addr)
+    });
+    extern { static _binary_initram_elf_start: u8; }
+    0
+})
+
 // syscall!(fn getuid() -> uint {
 //     0
 // })
 
-syscall!(fn set_thread_area(entry: *platform::cpu::IdtEntry) -> uint {
+syscall!(fn set_thread_area(entry: */*platform::cpu::IdtEntry*/uint) -> uint {
     0
 })

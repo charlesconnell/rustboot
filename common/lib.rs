@@ -21,9 +21,9 @@ pub use platform::efi;
 pub use platform::runtime;
 
 #[cfg(target_arch = "arm")]
-use platform = arch::arm;
+pub use platform = arch::arm;
 #[cfg(target_arch = "arm")]
-pub use rust_core::support::{memcpy, memmove};
+pub use rust_core::support::{memcpy, memmove, memcmp};
 
 pub use arch::common;
 pub use kernel::util;

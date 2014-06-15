@@ -20,6 +20,19 @@ pub extern "C" fn memcpy(dest: *mut u8, src: *u8, n: int) {
 }
 
 #[no_mangle]
+pub extern "C" fn memcmp(dest: *u8, src: *u8, n: int) -> int {
+    unsafe {
+        let mut i = 0;
+        while i < n {
+            if *(offset(src, i)) != *(offset(dest, i)) {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+#[no_mangle]
 pub extern "C" fn memmove(dest: *mut u8, src: *u8, n: int) {
     unsafe {
         if src < dest as *u8 { // copy from end

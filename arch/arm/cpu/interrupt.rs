@@ -1,10 +1,12 @@
 use core::intrinsics::{offset, transmute, volatile_store};
-
 use core::failure;
 use core::fmt;
+use core::mem::uninitialized;
+use core;
 
 use kernel;
 use platform::io;
+use super::Context;
 
 struct PICRegisters {
     irq_status    : IntSource, // IRQ status register
@@ -109,7 +111,14 @@ pub unsafe fn debug() {
 }
 
 unsafe fn handler() {
-    kernel::syscall::handler(&mut kernel::syscall::args(0, 0, 0, 0));
+    let mut ctx: Context = unsafe { uninitialized() };
+    asm!("" : "={r0}"(ctx.r0), "={r1}"(ctx.r1), "={r2}"(ctx.r2), "={r3}"(ctx.r3) ::: "volatile");
+
+    kernel::syscall::handler(&mut ctx);
+
+    asm!("add sp, sp, 16
+          pop {r11, lr}
+          movs pc, lr" :: "{r0}"(ctx.r0) :: "volatile");
 }
 
 // TODO respect destructors

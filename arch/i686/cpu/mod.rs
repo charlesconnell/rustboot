@@ -72,6 +72,14 @@ impl Context {
         [self.ebx, self.ecx, self.edx, self.esi, self.edi, self.ebp]
     }
 
+    pub fn get_arg(&mut self) -> u32 {
+        self.eax
+    }
+
+    pub fn set_arg(&mut self, ret: uint) {
+        self.eax = ret as u32;
+    }
+
     unsafe fn save() -> &mut Context {
         let this: &mut Context;
         asm!("push gs

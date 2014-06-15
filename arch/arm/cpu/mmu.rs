@@ -1,3 +1,6 @@
+use core::ptr::set_memory;
+use core::fmt;
+use core::prelude::*;
 use core;
 
 use kernel::mm::physical;
@@ -11,6 +14,7 @@ static PAGE_SIZE_LOG2: uint = 12;
 
 // kinda clever
 define_flags!(Flags: u32 {
+    // SECTION = 0b10 ?
     SECTION = 0b10010,
 
     BUFFER = 1 << 2,
@@ -35,19 +39,49 @@ pub struct PageDirectory {
 
 pub static mut directory: *mut PageDirectory = 0 as *mut PageDirectory;
 
+macro_rules! impl_read_write (
+    ($reg:expr, $name:ident : $T:ident) => (
+        impl $name {
+            #[inline] #[allow(dead_code)]
+            pub fn read() -> $T {
+                unsafe {
+                    let flags;
+                    asm!(concat!("mrc p15, 0, $0, ", $reg, ", c0, 0") : "=r"(flags));
+                    $T(flags)
+                }
+            }
+
+            #[inline] #[allow(dead_code)]
+            pub fn write(f: $T) {
+                match f {
+                    $T(val) => unsafe {
+                        asm!(concat!("mcr p15, 0, $0, ", $reg, ", c0, 0") :: "r"(val) :: "volatile");
+                    }
+                }
+            }
+        }
+    );
+)
+
 define_reg!(CR, CRFlags: uint {
     CR_M  = 1 << 0,  // MMU enable
     CR_A  = 1 << 1,
     CR_C  = 1 << 2,  // Data cache enable
+
+    // sb1
     CR_W  = 1 << 3,
     CR_P  = 1 << 4,  // 32-bit exception handler
     CR_D  = 1 << 5,  // 32-bit data address range
     CR_L  = 1 << 6,  // Implementation defined
+
     CR_B  = 1 << 7,  // Endianness
     CR_S  = 1 << 8,
     CR_R  = 1 << 9,
+
+    // sb0
     CR_F  = 1 << 10, // Implementation defined
     CR_Z  = 1 << 11, // Implementation defined
+
     CR_I  = 1 << 12, // Instruction cache enable
     CR_V  = 1 << 13,
     CR_RR = 1 << 14,
@@ -56,7 +90,7 @@ define_reg!(CR, CRFlags: uint {
 
 // Each of the 16 domains can be either allowed full access (manager)
 // to a region of memory or restricted access to some pages in that region (client).
-define_flags!(DomainTypeMask: uint {
+define_reg!(DomainType, DomainTypeMask: uint {
     KERNEL = 0b11 << 0,
     USER   = 0b11 << 2,
     NOACCESS = 0,
@@ -64,34 +98,48 @@ define_flags!(DomainTypeMask: uint {
     MANAGER  = 0b11 * 0x55555555
 })
 
-impl CR {
+struct DirBase;
+
+impl_read_write!("c1", CR: CRFlags)
+impl_read_write!("c3", DomainType: DomainTypeMask)
+// impl_read_write!("c2", DirBase: Phys, Phys<PageDirectory>)
+
+impl DirBase {
     #[inline] #[allow(dead_code)]
-    pub fn read() -> CRFlags {
+    pub fn read() -> Phys<PageDirectory> {
         unsafe {
-            let flags;
-            asm!(concat!("mrc p15, 0, $0, c1, c0, 0") : "=r"(flags));
-            CRFlags(flags)
+            let addr;
+            asm!(concat!("mrc p15, 0, $0, c2, c0, 0") : "=r"(addr));
+            Phys::at(addr)
         }
     }
 
     #[inline] #[allow(dead_code)]
-    pub fn write(f: CRFlags) {
-        match f {
-            CRFlags(val) => unsafe {
-                asm!(concat!("mcr p15, 0, $0, c1, c0, 0") :: "r"(val) :: "volatile");
-            }
-        }
+    pub unsafe fn write(val: Phys<PageDirectory>) {
+        asm!(concat!("mcr p15, 0, $0, c2, c0, 0") :: "r"(val.offset()) :: "volatile");
     }
 }
 
-pub unsafe fn init() {
-    let dir: Phys<PageDirectory> = physical::zero_alloc_frames(4);
+impl fmt::Show for CRFlags {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let &CRFlags(f) = self;
+        write!(fmt, "{:x}", f)
+    }
+}
 
-    (*dir.as_ptr()).entries[0] = Descriptor::section(0, RW);
+pub unsafe fn init() -> Phys<PageDirectory> {
+    let dir: Phys<PageDirectory> = (*physical::frames).zero_alloc(4);
+    assert_eq!(dir.offset() & (4 * PAGE_SIZE - 1), 0);
+
+    for i in range(0u, 4096) {
+        (*dir.as_ptr()).entries[i] = Descriptor::section(i as u32 << 20, RW);
+    }
 
     directory = dir.as_ptr();
     switch_directory(dir);
     enable_paging();
+
+    dir
 }
 
 pub fn switch_directory(dir: Phys<PageDirectory>) {
@@ -100,9 +148,8 @@ pub fn switch_directory(dir: Phys<PageDirectory>) {
     let cpu_domain = KERNEL & MANAGER | USER & MANAGER;
 
     unsafe {
-        asm!("mcr p15, 0, $0, c3, c0, 0     // load domain access register
-              mcr p15, 0, $1, c2, c0, 0     // load page table pointer
-            " :: "r"(cpu_domain), "r"(dir.offset()) : "ip" : "volatile");
+        DomainType::write(cpu_domain);
+        DirBase::write(dir);
     }
 }
 
@@ -115,7 +162,7 @@ fn enable_paging() {
             " ::: "ip" : "volatile");
 
         CR::write(CR - (CR_A | CR_W | CR_P | CR_D | CR_R | CR_F | CR_Z | CR_V | CR_RR)
-                     | (CR_S | CR_I | CR_C | CR_M));
+                    | (CR_S | CR_I | CR_C | CR_M));
     }
 }
 
