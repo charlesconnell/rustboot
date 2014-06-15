@@ -1,18 +1,23 @@
 use core::mem::size_of;
+use core::ptr::set_memory;
 use core::prelude::*;
 
 use kernel::mm::{Allocator, Alloc, BuddyAlloc};
+use kernel::mm::physical::{FrameAllocator, Phys};
 use util::bitv;
 
 use rust_core::fail::{abort, out_of_memory};
 
 pub static mut heap: Option<Alloc> = None;
 
-pub fn init() -> Alloc {
+pub fn init(frames: &mut FrameAllocator) -> Alloc {
+    let btree: Phys<u32> = unsafe { frames.zero_alloc(4) };
+    let storage: Phys<u8> = unsafe { frames.alloc(8) };
+    unsafe { set_memory(btree.as_ptr(), 0, 1024*4); }
     let alloc = Alloc::new(
-        BuddyAlloc::new(17, bitv::Bitv { storage: 0x100_000 as *mut u32 }),
-        0x110_000 as *mut u8,
-        0,
+        BuddyAlloc::new(17, bitv::Bitv { storage: btree.as_ptr() as *mut u32 }),
+        storage.as_ptr() as *mut u8,
+        0, // byte size
     );
     unsafe {
         heap = Some(alloc);

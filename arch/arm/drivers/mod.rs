@@ -2,15 +2,14 @@ use core::option::{Option, None};
 
 use super::cpu::interrupt;
 use super::io;
+use kernel::Kernel;
 use kernel;
 
 pub static mut keydown: Option<fn(u32)> = None;
 
-pub fn init() {
+pub fn init(kernel: &mut Kernel) {
     unsafe {
-        kernel::int_table.map(|t| {
-            t.enable(interrupt::IRQ, keypress);
-        });
+        kernel.interrupts.enable(interrupt::IRQ, keypress);
     }
 }
 

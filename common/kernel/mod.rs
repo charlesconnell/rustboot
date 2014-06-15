@@ -1,9 +1,10 @@
 use core::option::{Some};
 use core::mem::uninit;
+use core::ptr::RawPtr;
 
 use platform::{cpu, io, drivers};
-use cpu::interrupt;
-use cpu::mmu::{Frame, PageDirectory, RW, PRESENT};
+use platform::cpu::interrupt;
+use platform::cpu::mmu::{Frame, PageDirectory};
 use util::rt::breakpoint;
 use self::mm::physical::{Phys, FrameAllocator};
 
@@ -31,8 +32,8 @@ pub struct Kernel {
 
 impl Kernel {
     fn init() -> Kernel {
-        let heap = heap::init();
-        let frame_allocator = mm::physical::init();
+        let mut frame_allocator = mm::physical::init();
+        let heap = heap::init(&mut frame_allocator);
         let int_table = interrupt::Table::new();
         int_table.load();
         unsafe {
@@ -72,7 +73,34 @@ pub fn main() {
     let mut kernel = Kernel::init();
 
     unsafe {
+        let stack: Phys<Frame> = kernel.alloc_frames(1);
+        let mut init = process::Process::new();
+        init.esp = stack.as_ptr().offset(1) as u32;
+        run_init(init);
     }
-    elf::exec(&_binary_initram_elf_start);
-    extern { static _binary_initram_elf_start: u8; }
+}
+
+#[cfg(target_arch = "x86")]
+unsafe fn run_init(mut init: process::Process) -> ! {
+    init.eip = initcode as u32;
+    init.enter();
+
+    asm!("initcode:
+        mov eax, 11 // sys_execve
+        int 0x80
+        $$.loop: jmp $$.loop" :::: "intel")
+    extern { fn initcode(); }
+    fail!()
+}
+
+#[cfg(target_arch = "arm")]
+unsafe fn run_init(mut init: process::Process) -> ! {
+    init.eip = initcode as u32;
+    init.enter();
+
+    asm!("initcode:
+        swi 0
+        b .")
+    extern { fn initcode(); }
+    fail!()
 }

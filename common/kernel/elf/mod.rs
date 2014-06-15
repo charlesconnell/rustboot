@@ -6,6 +6,7 @@ use core;
 
 use kernel::process::Process;
 use kernel::mm;
+use kernel::mm::VirtRange;
 use platform::io;
 
 #[cfg(target_word_size = "32")] pub use self::elf32::{Ehdr, Phdr, Auxv, AuxvValue, AT_NULL};
@@ -49,26 +50,25 @@ struct ELFIdent {
 }
 
 impl self::Ehdr {
-    pub unsafe fn spawn_process(&self) -> Process {
-        let mut task = Process::new();
+    pub unsafe fn load(&self) -> (uint, uint) {
         //TODO: Verify file integrity
         let buffer: *u8 = transmute(self);
         let ph_size = self.e_phentsize as int;
         let ph_base = buffer.offset(self.e_phoff as int);
 
-        let mut stack_flags = mm::RW;
+        let mut stack_prot = mm::WRITE;
 
         for i in range(0, self.e_phnum) {
             let pheader = ph_base.offset(ph_size * i as int) as *Phdr;
 
             match (*pheader).p_type {
                 PT_NULL => {}
-                PT_LOAD => (*pheader).load(&task, buffer),
-                PT_DYNAMIC => (*pheader).load(&task, buffer),
+                PT_LOAD => (*pheader).load(buffer),
+                PT_DYNAMIC => (*pheader).load(buffer),
                 PT_GNU_STACK => {
                     if !((*pheader).p_flags & !PT_X).is_zero() {
                         // We don't need an executable stack
-                        stack_flags = mm::Flags::zero();
+                        stack_prot = mm::Prot::zero();
                     }
                 },
                 _ => {}
@@ -77,7 +77,7 @@ impl self::Ehdr {
 
         static stack_bottom: u32 = 0xC0000000;
         let stack_vaddr = (stack_bottom - 0x1000) as *mut u8;
-        task.mmap(stack_vaddr, 0x1000, stack_flags);
+        VirtRange::new(stack_vaddr, 0x1000).mmap(stack_prot);
         let stack_ptr = (stack_bottom as *mut u8).offset(-(((4 + 5 + 15) & !0xF) + 8 + 4 + 4 + 4));
         let argv_ptr = stack_ptr as *mut *mut u8;
         let envp_ptr = argv_ptr.offset(2);
@@ -93,26 +93,24 @@ impl self::Ehdr {
         *argv_ptr = str_ptr;
 
         // return entry address
-        task.esp = stack_ptr as u32;
-        task.eip = transmute(self.e_entry);
-        task
+        (self.e_entry as uint, stack_ptr as uint)
     }
 }
 
 impl self::Phdr {
-    unsafe fn load(&self, task: &Process, buffer: *u8) {
+    unsafe fn load(&self, buffer: *u8) {
         let vaddr = self.p_vaddr as *mut u8;
         let mem_size = self.p_memsz as uint;
         let file_pos = self.p_offset as int;
         let file_size = self.p_filesz as uint;
 
         let flags = if !(self.p_flags & PT_W).is_zero() {
-            mm::RW
+            mm::WRITE
         } else {
-            mm::Flags::zero()
+            mm::Prot::zero()
         };
 
-        task.mmap(vaddr, mem_size, flags);
+        VirtRange::new(vaddr, mem_size).mmap(flags);
 
         copy_nonoverlapping_memory(vaddr, buffer.offset(file_pos), file_size);
         set_memory(vaddr.offset(file_size as int), 0, mem_size - file_size);
@@ -137,9 +135,16 @@ impl ELFIdent {
     }
 }
 
+pub fn load(buffer: *u8) -> Option<(uint, uint)> {
+    unsafe {
+        let ident: &ELFIdent = &*(buffer as *ELFIdent);
+        ident.load().map(|e| e.load())
+    }
+}
+
 pub fn exec(buffer: *u8) {
     unsafe {
         let ident: &ELFIdent = transmute(buffer);
-        ident.load().map(|e| { e.spawn_process().enter() });
+        // ident.load().map(|e| { e.spawn_process().enter() });
     }
 }

@@ -4,6 +4,7 @@ use core::prelude::*;
 use core::fmt;
 use core;
 
+use kernel::mm::{Prot, VirtRange};
 use kernel::mm::physical;
 use kernel::mm::physical::Phys;
 use util::rt;
@@ -84,6 +85,19 @@ fn enable_paging() {
 
 pub unsafe fn map_frame(page_ptr: *mut u8, flags: Flags) {
     (*VMEM).dir.map_frame(page_ptr, flags);
+}
+
+impl ::kernel::mm::VirtRange {
+    pub fn mmap(&self, prot: Prot) -> VirtRange {
+        for frame_ptr in self.iter() {
+            unsafe {
+                let frame = (*physical::frames).alloc(1);
+                get_dir().set_page(frame_ptr, frame, PRESENT);
+                set_memory(frame_ptr, 0, 1);
+            }
+        }
+        *self
+    }
 }
 
 #[inline]
@@ -198,9 +212,7 @@ impl Table<Table<Page>> {
                 let index = (vptr as uint / size) & (ENTRIES - 1);
                 self.entries[index] = Page::new(table, flags);
 
-                let t = &mut (*VMEM).tables[index];
-                flush_tlb(t);
-                set_memory(t, 0, 1);
+                // TODO zero it out
 
                 table.as_ptr()
             }

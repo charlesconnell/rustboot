@@ -2,10 +2,11 @@ use core;
 
 use kernel::mm::physical;
 use kernel::mm::physical::Phys;
+use kernel::mm::{Prot, VirtRange};
 
 pub type Frame = [u8, ..PAGE_SIZE];
 
-static PAGE_SIZE: uint = 0x1000;
+pub static PAGE_SIZE: uint = 0x1000;
 static PAGE_SIZE_LOG2: uint = 12;
 
 // kinda clever
@@ -122,6 +123,13 @@ pub unsafe fn map(_: *mut u8, _: uint, _: Flags) {
     // TODO
 }
 
+impl ::kernel::mm::VirtRange {
+    pub fn mmap(&self, prot: Prot) -> VirtRange {
+        // TODO
+        *self
+    }
+}
+
 impl Descriptor {
     fn section(base: u32, flags: Flags) -> Descriptor {
         // make a section descriptor
@@ -138,5 +146,11 @@ impl PageDirectory {
 
     pub unsafe fn clone(&mut self) -> Phys<PageDirectory> {
         Phys::at(self as *mut PageDirectory as uint)
+    }
+}
+
+pub fn clone_directory() -> Phys<PageDirectory> {
+    unsafe {
+        (*directory).clone()
     }
 }

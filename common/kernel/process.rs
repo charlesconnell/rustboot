@@ -2,15 +2,14 @@ use core::ptr::RawPtr;
 use core::clone::Clone;
 use core::intrinsics::transmute;
 
-use kernel::mm::{Flags, PageDirectory};
+use kernel::mm::{Prot, PageDirectory, VirtRange};
 use kernel::mm::physical;
 
 use util::rt::breakpoint;
 
 use platform::cpu::mmu;
 use platform::cpu::mmu::{
-    PAGE_SIZE,
-    PRESENT
+    PAGE_SIZE
 };
 
 pub struct Process {
@@ -30,17 +29,17 @@ impl Process {
         }
     }
 
-    pub fn mmap(&self, mut page_ptr: *mut u8, size: uint, flags: Flags) {
+    pub fn mmap(&self, mut page_ptr: *mut u8, size: uint, prot: Prot) -> VirtRange {
         // TODO: optimize with uints?
+        VirtRange::new(page_ptr, size).mmap(prot)
+    }
+
+    #[cfg(target_arch = "x86")]
+    pub fn jump((ip, sp): (uint, uint)) {
         unsafe {
-            let end = page_ptr.offset(size as int);
-            while page_ptr < end {
-                let frame = (*physical::frames).alloc(1);
-                (*self.paging.as_ptr()).set_page(page_ptr, frame, flags | PRESENT);
-                // FIXME do not set globally!
-                mmu::get_dir().set_page(page_ptr, frame, flags | PRESENT);
-                page_ptr = page_ptr.offset(PAGE_SIZE as int);
-            }
+            asm!("xor eax, eax
+                  xor edx, edx
+                  jmp $0" :: "r"(ip), "{esp}"(sp) : "eax", "edx" : "volatile", "intel")
         }
     }
 
@@ -50,9 +49,16 @@ impl Process {
             breakpoint();
             // TODO need to store physical address
             mmu::switch_directory(self.paging);
-            asm!("xor %eax, %eax
-                  xor %edx, %edx
-                  jmp *$0" :: "m"(self.eip), "{esp}"(self.esp) :: "volatile")
+            asm!("xor eax, eax
+                  xor edx, edx
+                  jmp $0" :: "r"(self.eip), "{esp}"(self.esp) : "eax", "edx" : "volatile", "intel")
+        }
+    }
+
+    #[cfg(target_arch = "arm")]
+    pub fn jump((ip, sp): (uint, uint)) {
+        unsafe {
+            asm!("bx $0" :: "r"(ip), "{sp}"(sp) :: "volatile")
         }
     }
 

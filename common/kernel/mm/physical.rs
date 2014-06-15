@@ -1,9 +1,10 @@
 use core::mem::transmute;
+use core::ptr::set_memory;
 
 use kernel::heap;
 use kernel::mm;
 use kernel::mm::Allocator;
-use cpu::mmu::Frame;
+use platform::cpu::mmu::Frame;
 use util::bitv;
 
 use rust_core::fail::abort;
@@ -37,9 +38,9 @@ pub struct FrameAllocator {
 }
 
 impl FrameAllocator {
-    pub fn new(base: *mut u8) -> FrameAllocator {
+    pub fn new(base: *mut u8, storage: *mut [u32, ..1024]) -> FrameAllocator {
         FrameAllocator { parent: mm::Alloc::new(
-            mm::BuddyAlloc::new(13, bitv::Bitv { storage: unsafe { heap::zero_alloc::<u32>(1024) } }),
+            mm::BuddyAlloc::new(13, bitv::Bitv { storage: storage as *mut u32 }),
             base,
             12
         ) }
@@ -53,11 +54,7 @@ impl FrameAllocator {
     }
 
     pub unsafe fn zero_alloc<T = Frame>(&mut self, count: uint) -> Phys<T> {
-        match self.parent.zero_alloc(count) {
-            (_, 0) => abort(),
-            (ptr, _) => Phys { ptr: ptr as *mut T }
-        }
-        // self.alloc(count) ...
+        self.alloc(count)
     }
 
     #[inline]
@@ -68,7 +65,10 @@ impl FrameAllocator {
 
 pub fn init() -> FrameAllocator {
     unsafe {
-        let a = FrameAllocator::new(0x200_000 as *mut u8);
+        let btree = 0x100_000 as *mut [u32, ..1024];
+        set_memory(btree, 0, 1);
+        // keep it well aligned
+        let a = FrameAllocator::new(0x110_000 as *mut u8, btree);
         frames = &a as *FrameAllocator as *mut FrameAllocator;
         a
     }
