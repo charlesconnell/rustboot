@@ -245,7 +245,7 @@ impl Table<Table<Page>> {
             temp1.map_self(dir_phys);
             // Copy entries
             let cnt = 0xC0000000 / (ENTRIES * PAGE_SIZE);
-            copy_nonoverlapping_memory(&mut temp1.entries as *mut Page, &self.entries as *Page, cnt);
+            copy_nonoverlapping_memory(&mut temp1.entries[0] as *mut Page, &self.entries as *Page, cnt);
 
             dir_phys
         }
