@@ -3,7 +3,7 @@ OUTPUT_ARCH(arm)
 ENTRY(start)
 
 SECTIONS {
-    . = 0x10000;
+    . = 0x8000;
 
     .text : {
        boot/loader.o
