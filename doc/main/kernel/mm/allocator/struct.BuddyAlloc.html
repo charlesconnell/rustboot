@@ -43,11 +43,18 @@
 <h1 class='fqn'>Struct <a href='../../../index.html'>main</a>::<a href='../../index.html'>kernel</a>::<a href='../index.html'>mm</a>::<a href='index.html'>allocator</a>::<a class='struct' href=''>BuddyAlloc</a><span class='out-of-band'><span id='render-detail'>
             <a id="collapse-all" href="#">[collapse all]</a>
             <a id="expand-all" href="#">[expand all]</a>
-        </span><a id='src-465' href='../../../../src/main/common/kernel/mm/allocator.rs.html#37-40'>[src]</a></span></h1>
+        </span><a id='src-465' href='../../../../src/main/common/kernel/mm/allocator.rs.html#47-50'>[src]</a></span></h1>
 <pre class='rust struct'>pub struct BuddyAlloc {
     pub order: <a href='http://doc.rust-lang.org/master/core/primitive.uint.html'>uint</a>,
     pub tree: <a class='struct' href='../../../../main/kernel/util/bitv/struct.Bitv.html' title='main::kernel::util::bitv::Bitv'>Bitv</a>,
-}</pre><h2 class='fields'>Fields</h2>
+}</pre><div class='docblock'><p>The <a href="http://en.wikipedia.org/wiki/Buddy_memory_allocation">buddy memory allocation[1]</a> system is implemented with the use of a binary tree.
+It can be augmented with the use of linked lists[<a href="http://dysphoria.net/OperatingSystems1/4_allocation_buddy_system.html">2</a>].</p>
+
+<ol>
+<li><a href="http://en.wikipedia.org/wiki/Buddy_memory_allocation">Buddy memory allocation - Wikipedia</a></li>
+<li><a href="http://dysphoria.net/OperatingSystems1/4_allocation_buddy_system.html">52.206 Operating Systems. Heap memory allocation</a></li>
+</ol>
+</div><h2 class='fields'>Fields</h2>
 <table><tr><td id='structfield.order'><a class='stability Unmarked' title='No stability level'></a><code>order</code></td><td></td></tr><tr><td id='structfield.tree'><a class='stability Unmarked' title='No stability level'></a><code>tree</code></td><td></td></tr></table><h2 id='methods'>Methods</h2><h3 class='impl'><a class='stability Unmarked' title='No stability level'></a><code>impl <a class='struct' href='../../../../main/kernel/mm/allocator/struct.BuddyAlloc.html' title='main::kernel::mm::allocator::BuddyAlloc'>BuddyAlloc</a></code></h3><div class='impl-methods'><h4 id='method.new' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.new' class='fnname'>new</a>(order: <a href='http://doc.rust-lang.org/master/core/primitive.uint.html'>uint</a>, storage: <a class='struct' href='../../../../main/kernel/util/bitv/struct.Bitv.html' title='main::kernel::util::bitv::Bitv'>Bitv</a>) -&gt; <a class='struct' href='../../../../main/kernel/mm/allocator/struct.BuddyAlloc.html' title='main::kernel::mm::allocator::BuddyAlloc'>BuddyAlloc</a></code></h4>
 </div></section>
     <section id='search' class="content hidden"></section>

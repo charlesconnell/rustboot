@@ -76,6 +76,15 @@
 <span id='35'>35</span>
 <span id='36'>36</span>
 <span id='37'>37</span>
+<span id='38'>38</span>
+<span id='39'>39</span>
+<span id='40'>40</span>
+<span id='41'>41</span>
+<span id='42'>42</span>
+<span id='43'>43</span>
+<span id='44'>44</span>
+<span id='45'>45</span>
+<span id='46'>46</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> <span class='ident'>core</span>::<span class='ident'>option</span>::{<span class='prelude-ty'>Option</span>, <span class='prelude-val'>Some</span>, <span class='prelude-val'>None</span>};
 
@@ -96,6 +105,15 @@
 
 <span class='kw'>pub</span> <span class='kw'>static</span> <span class='kw-2'>mut</span> <span class='ident'>int_table</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Table</span><span class='op'>&gt;</span> <span class='op'>=</span> <span class='prelude-val'>None</span>;
 
+<span class='doccomment'>/// Called at the end of the bootloader. Starts in protected mode</span>
+<span class='doccomment'>/// with the following memory layout:</span>
+<span class='doccomment'>///</span>
+<span class='doccomment'>/// | Physical memory ranges | Size     | Description |</span>
+<span class='doccomment'>/// | ---------------------- | -------- | ----------- |</span>
+<span class='doccomment'>/// | 0x0000 ... 0x7BFF      | 31 KiB   | Stack       |</span>
+<span class='doccomment'>/// | 0x7C00 ... 0x7DFF      | 0.5 KiB  | Bootloader  |</span>
+<span class='doccomment'>/// | 0x07E00 ... 0x0FFFF    | 32.5 KiB | _unused_    |</span>
+<span class='doccomment'>/// | 0x10000 ... 0x1FFFF    | 64 KiB   | Kernel      |</span>
 <span class='attribute'>#[<span class='ident'>lang</span><span class='op'>=</span><span class='string'>&quot;start&quot;</span>]</span>
 <span class='attribute'>#[<span class='ident'>no_mangle</span>]</span>
 <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>main</span>() {

@@ -43,8 +43,39 @@
 <h1 class='fqn'>Function <a href='../index.html'>main</a>::<a href='index.html'>kernel</a>::<a class='fn' href=''>main</a><span class='out-of-band'><span id='render-detail'>
             <a id="collapse-all" href="#">[collapse all]</a>
             <a id="expand-all" href="#">[expand all]</a>
-        </span><a id='src-3216' href='../../src/main/common/kernel/mod.rs.html#22-37'>[src]</a></span></h1>
-<pre class='rust fn'>pub fn main()</pre></section>
+        </span><a id='src-3216' href='../../src/main/common/kernel/mod.rs.html#31-46'>[src]</a></span></h1>
+<pre class='rust fn'>pub fn main()</pre><div class='docblock'><p>Called at the end of the bootloader. Starts in protected mode
+with the following memory layout:</p>
+
+<table><thead>
+<tr>
+<th>Physical memory ranges</th>
+<th>Size</th>
+<th>Description</th>
+</tr>
+</thead><tbody>
+<tr>
+<td>0x0000 ... 0x7BFF</td>
+<td>31 KiB</td>
+<td>Stack</td>
+</tr>
+<tr>
+<td>0x7C00 ... 0x7DFF</td>
+<td>0.5 KiB</td>
+<td>Bootloader</td>
+</tr>
+<tr>
+<td>0x07E00 ... 0x0FFFF</td>
+<td>32.5 KiB</td>
+<td><em>unused</em></td>
+</tr>
+<tr>
+<td>0x10000 ... 0x1FFFF</td>
+<td>64 KiB</td>
+<td>Kernel</td>
+</tr>
+</tbody></table>
+</div></section>
     <section id='search' class="content hidden"></section>
 
     <section class="footer"></section>

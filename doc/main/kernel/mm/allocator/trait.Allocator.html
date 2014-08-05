@@ -43,14 +43,15 @@
 <h1 class='fqn'>Trait <a href='../../../index.html'>main</a>::<a href='../../index.html'>kernel</a>::<a href='../index.html'>mm</a>::<a href='index.html'>allocator</a>::<a class='trait' href=''>Allocator</a><span class='out-of-band'><span id='render-detail'>
             <a id="collapse-all" href="#">[collapse all]</a>
             <a id="expand-all" href="#">[expand all]</a>
-        </span><a id='src-355' href='../../../../src/main/common/kernel/mm/allocator.rs.html#18-35'>[src]</a></span></h1>
+        </span><a id='src-355' href='../../../../src/main/common/kernel/mm/allocator.rs.html#20-37'>[src]</a></span></h1>
 <pre class='rust trait'>pub trait Allocator {
     fn <a href='#tymethod.alloc' class='fnname'>alloc</a>(&amp;mut self, size: <a href='http://doc.rust-lang.org/master/core/primitive.uint.html'>uint</a>) -&gt; <a href='http://doc.rust-lang.org/master/core/primitive.tuple.html'>(*mut <a href='http://doc.rust-lang.org/master/core/primitive.u8.html'>u8</a>, <a href='http://doc.rust-lang.org/master/core/primitive.uint.html'>uint</a>)</a>;
     fn <a href='#tymethod.free' class='fnname'>free</a>(&amp;mut self, ptr: *mut <a href='http://doc.rust-lang.org/master/core/primitive.u8.html'>u8</a>);
 
     fn <a href='#method.zero_alloc' class='fnname'>zero_alloc</a>(&amp;mut self, s: <a href='http://doc.rust-lang.org/master/core/primitive.uint.html'>uint</a>) -&gt; <a href='http://doc.rust-lang.org/master/core/primitive.tuple.html'>(*mut <a href='http://doc.rust-lang.org/master/core/primitive.u8.html'>u8</a>, <a href='http://doc.rust-lang.org/master/core/primitive.uint.html'>uint</a>)</a> { ... }
     fn <a href='#method.realloc' class='fnname'>realloc</a>(&amp;mut self, src: *mut <a href='http://doc.rust-lang.org/master/core/primitive.u8.html'>u8</a>, size: <a href='http://doc.rust-lang.org/master/core/primitive.uint.html'>uint</a>) -&gt; <a href='http://doc.rust-lang.org/master/core/primitive.tuple.html'>(*mut <a href='http://doc.rust-lang.org/master/core/primitive.u8.html'>u8</a>, <a href='http://doc.rust-lang.org/master/core/primitive.uint.html'>uint</a>)</a> { ... }
-}</pre>
+}</pre><div class='docblock'><p>The allocator interface. Based on an unfinished RFC.</p>
+</div>
             <h2 id='required-methods'>Required Methods</h2>
             <div class='methods'>
         <h3 id='tymethod.alloc' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#tymethod.alloc' class='fnname'>alloc</a>(&amp;mut self, size: <a href='http://doc.rust-lang.org/master/core/primitive.uint.html'>uint</a>) -&gt; <a href='http://doc.rust-lang.org/master/core/primitive.tuple.html'>(*mut <a href='http://doc.rust-lang.org/master/core/primitive.u8.html'>u8</a>, <a href='http://doc.rust-lang.org/master/core/primitive.uint.html'>uint</a>)</a></code></h3><h3 id='tymethod.free' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#tymethod.free' class='fnname'>free</a>(&amp;mut self, ptr: *mut <a href='http://doc.rust-lang.org/master/core/primitive.u8.html'>u8</a>)</code></h3></div>
