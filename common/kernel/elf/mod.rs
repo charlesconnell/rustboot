@@ -35,17 +35,17 @@ bitflags!(flags HeaderFlags: u32 {
     const PT_X = 1,
     const PT_R = 2,
     const PT_W = 4
-})
+});
 
 #[repr(packed)]
 struct ELFIdent {
-    ei_mag: [u8, ..4],
+    ei_mag: [u8; ..4],
     ei_class: u8,
     ei_data: u8,
     ei_version: u8,
     ei_osabi: u8,
     ei_abiversion: u8,
-    ei_pad: [u8, ..7]
+    ei_pad: [u8; ..7]
 }
 
 trait EhdrT {
@@ -92,8 +92,8 @@ impl EhdrT for self::Ehdr {
         let auxv_ptr = argv_ptr.offset(1) as *mut Auxv;
         let str_ptr = (stack_bottom as *mut u8).offset(-(4 + 5));
 
-        *argv_ptr.offset(1) = transmute(0u);
-        *envp_ptr = transmute(0u);
+        *argv_ptr.offset(1) = transmute(u0);
+        *envp_ptr = transmute(u0);
         *auxv_ptr = Auxv { a_type: AuxvType::AT_NULL, a_un: AuxvValue { data: 0 } };
 
         let (strs, len): (*const u8, uint) = transmute("test\0");
@@ -130,7 +130,7 @@ impl PhdrT for self::Phdr {
 impl ELFIdent {
     unsafe fn load(&self) -> Option<&Ehdr> {
         // TODO: check endianness
-        static MAGIC_STRING : &'static str = "\u007fELF";
+        static MAGIC_STRING : &'static str = "\x7fELF";
         if *(MAGIC_STRING.as_ptr() as *const u32) != transmute(self.ei_mag) {
             return None;
         }

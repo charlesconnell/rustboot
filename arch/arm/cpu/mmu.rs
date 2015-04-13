@@ -5,7 +5,7 @@ use core;
 use kernel::mm::physical;
 use kernel::mm::physical::Phys;
 
-pub type Frame = [u8, ..PAGE_SIZE];
+pub type Frame = [u8; ..PAGE_SIZE];
 
 const PAGE_SIZE: uint = 0x1000;
 const PAGE_SIZE_LOG2: uint = 12;
@@ -18,20 +18,20 @@ bitflags!(flags Flags: u32 {
     const CACHE  = 1 << 3,
     const RW     = 1 << 10,
     const CLIENT_ACCESS = 1 << 11
-})
+});
 
 #[repr(packed)]
 pub struct Descriptor(u32);
 
 #[repr(packed)]
 struct PageTableCoarse {
-    pages: [Descriptor, ..256]
+    pages: [Descriptor; ..256]
 }
 
 #[allow(visible_private_types)]
 #[repr(packed)]
 pub struct PageDirectory {
-    entries: [Descriptor, ..4096]
+    entries: [Descriptor; ..4096]
 }
 
 pub static mut directory: *mut PageDirectory = 0 as *mut PageDirectory;
@@ -53,7 +53,7 @@ define_reg!(CR, CRFlags: uint {
     CR_V  = 1 << 13,
     CR_RR = 1 << 14,
     CR_L4 = 1 << 15
-})
+});
 
 // Each of the 16 domains can be either allowed full access (manager)
 // to a region of memory or restricted access to some pages in that region (client).
@@ -63,7 +63,7 @@ bitflags!(flags DomainTypeMask: uint {
     const NOACCESS = 0,
     const CLIENT   = 0b01 * 0x55555555,
     const MANAGER  = 0b11 * 0x55555555
-})
+});
 
 impl CR {
     #[inline] #[allow(dead_code)]
@@ -130,7 +130,7 @@ impl Descriptor {
     }
 }
 
-impl_ops!(Descriptor, Flags)
+impl_ops!(Descriptor, Flags);
 
 impl PageDirectory {
     pub unsafe fn map(&self, _: *mut u8, _: uint, _: Flags) {

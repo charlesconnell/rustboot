@@ -20,7 +20,7 @@ type c_void = uint;
 
 #[repr(packed)]
 pub struct Ehdr {
-    pub e_ident: [c_uchar, ..16u],
+    pub e_ident: [c_uchar; ..u16],
     pub e_type: Elf32_Half,
     pub e_machine: Elf32_Half,
     pub e_version: Elf32_Word,
@@ -88,7 +88,7 @@ pub struct Elf32_Rela {
 }
 
 pub struct Union_Unnamed1 {
-    data: [c_uchar, ..4u],
+    data: [c_uchar; ..u4],
 }
 impl Union_Unnamed1 {
     pub fn d_val(&mut self) -> *mut Elf32_Word {
@@ -233,7 +233,7 @@ pub struct Struct_Unnamed6 {
     gt_bytes: Elf32_Word,
 }
 pub struct Elf32_gptab {
-    data: [c_uchar, ..8u],
+    data: [c_uchar; ..u8],
 }
 impl Elf32_gptab {
     pub fn gt_header(&mut self) -> *mut Struct_Unnamed5 {
@@ -245,7 +245,7 @@ impl Elf32_gptab {
 }
 pub struct Elf32_RegInfo {
     ri_gprmask: Elf32_Word,
-    ri_cprmask: [Elf32_Word, ..4u],
+    ri_cprmask: [Elf32_Word; ..u4],
     ri_gp_value: Elf32_Sword,
 }
 pub struct Elf_Options {

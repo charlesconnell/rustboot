@@ -66,7 +66,7 @@ pub extern fn rust_begin_unwind(msg: &fmt::Arguments,
     loop { }; // for divergence check
 }
 
-#[no_split_stack]
+#[no_stack_check]
 #[inline(never)]
 unsafe fn blue_screen(stack: &Context) {
     io::puts("Exception ");
@@ -74,7 +74,7 @@ unsafe fn blue_screen(stack: &Context) {
     asm!("hlt");
 }
 
-#[no_split_stack]
+#[no_stack_check]
 #[inline(never)]
 pub unsafe fn exception_handler() -> unsafe extern "C" fn() {
     asm!("jmp skip_exception_handler

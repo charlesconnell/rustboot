@@ -13,7 +13,7 @@ use kernel::mm::physical::Phys;
 use util::rt;
 use kernel;
 
-pub type Frame = [u8, ..PAGE_SIZE];
+pub type Frame = [u8; ..PAGE_SIZE];
 
 bitflags!(flags Flags: uint {
     const PRESENT  = 1 << 0,
@@ -21,7 +21,7 @@ bitflags!(flags Flags: uint {
     const USER     = 1 << 2,
     const ACCESSED = 1 << 5,
     const HUGE     = 1 << 7
-})
+});
 
 #[repr(packed)]
 pub struct Page(uint);
@@ -34,23 +34,23 @@ const DIR_VADDR: uint = 0xFFFFF000;
 
 struct VMemLayout {
     temp1: PageDirectory,                    // @ 0xFF7FF000
-    temp_tables: [PageTable, ..ENTRIES - 1], // @ 0xFF800000
+    temp_tables: [PageTable; ..ENTRIES - 1], // @ 0xFF800000
     temp: PageDirectory,                     // @ 0xFFBFF000
-    tables: [PageTable, ..ENTRIES - 1],      // @ 0xFFC00000
+    tables: [PageTable; ..ENTRIES - 1],      // @ 0xFFC00000
     dir: PageDirectory                       // @ 0xFFFFF000
 }
 
-static VMEM: *mut VMemLayout = 0xFF7FF000u as *mut VMemLayout;
+static VMEM: *mut VMemLayout = u0xFF7FF000 as *mut VMemLayout;
 
 // U: underlying element type
 #[repr(packed)]
 struct Table<U> {
-    entries: [Page, ..ENTRIES]
+    entries: [Page; ..ENTRIES]
 }
 
 #[repr(packed)]
 struct Directory<U = PageTable> {
-    entries: [U, ..ENTRIES]
+    entries: [U; ..ENTRIES]
 }
 
 pub type PageTable = Table<Page>;

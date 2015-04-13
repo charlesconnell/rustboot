@@ -1,5 +1,8 @@
 //! Higher-level input/output interface.
 
+#[plugin]
+extern crate core;
+
 use core::fmt;
 use core::prelude::*;
 

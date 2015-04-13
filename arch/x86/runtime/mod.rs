@@ -104,7 +104,7 @@ pub fn memcpy(dest: *mut u8, src: *const u8, mut n: uint) {
     }
     unsafe {
         if n < 12 {
-            asm!("rep movsb" :: "{edi}"(dest), "{esi}"(src), "{ecx}"(n))
+            asm!("rep movsb" :: "{edi}"(dest), "{esi}"(src), "{ecx}"(n));
             return;
         }
 
@@ -113,9 +113,9 @@ pub fn memcpy(dest: *mut u8, src: *const u8, mut n: uint) {
 
         let mut pd: *mut u8;
         let mut ps: *const u8;
-        asm!("rep movsb" : "={edi}"(pd), "={esi}"(ps) : "{edi}"(dest), "{esi}"(src), "{ecx}"(offset))
-        asm!("rep movsl" : "={edi}"(pd), "={esi}"(ps) : "{edi}"(pd), "{esi}"(ps), "{ecx}"(n >> 2))
-        asm!("rep movsb" :: "{edi}"(pd), "{esi}"(ps), "{ecx}"(n % 4))
+        asm!("rep movsb" : "={edi}"(pd), "={esi}"(ps) : "{edi}"(dest), "{esi}"(src), "{ecx}"(offset));
+        asm!("rep movsl" : "={edi}"(pd), "={esi}"(ps) : "{edi}"(pd), "{esi}"(ps), "{ecx}"(n >> 2));
+        asm!("rep movsb" :: "{edi}"(pd), "{esi}"(ps), "{ecx}"(n % 4));
     }
 }
 
@@ -123,12 +123,12 @@ pub fn memcpy(dest: *mut u8, src: *const u8, mut n: uint) {
 pub fn memmove(dest: *mut u8, src: *const u8, n: uint) {
     unsafe {
         if src < dest as *const u8 {
-            asm!("std")
+            asm!("std");
             memcpy(dest.offset(n as int), src.offset(n as int), n);
-            asm!("cld")
+            asm!("cld");
         }
         else {
-            asm!("cld")
+            asm!("cld");
             memcpy(dest, src, n);
         }
     }

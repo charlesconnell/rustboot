@@ -35,7 +35,7 @@ fn isalpha(c: u8) -> bool {
     ((c | 0x20) - 'a' as u8) < 26
 }
 
-#[no_split_stack]
+#[no_stack_check]
 fn keypress(code: u8) {
     match (code & 0x7f, code & 0x80 == 0) {
         (0x2A, down) | (0x36, down) => unsafe { shift = down },
@@ -59,7 +59,7 @@ fn keypress(code: u8) {
     }
 }
 
-#[no_split_stack]
+#[no_stack_check]
 #[inline(never)]
 pub unsafe fn isr_addr() -> unsafe extern "C" fn() {
     asm!("jmp skip_isr_addr

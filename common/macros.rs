@@ -1,4 +1,4 @@
-#![macro_escape]
+#![macro_use]
 
 macro_rules! define_reg (
     (
@@ -12,7 +12,7 @@ macro_rules! define_reg (
 
         impl_ops!($Reg, $flags, $flags, $Reg::read(), $flags)
     )
-)
+);
 
 macro_rules! impl_ops (
     ($T:ident, $RHS:ident) => (
@@ -72,12 +72,12 @@ macro_rules! impl_ops (
             }
         }
     )
-)
+);
 
 macro_rules! print(
-    ($($arg:tt)*) => (format_args!(::platform::io::print_args, $($arg)*))
-)
+    ($($arg:tt)*) => (format_args!($($arg)*))
+);
 
 macro_rules! println(
-    ($($arg:tt)*) => (format_args!(::platform::io::println_args, $($arg)*))
-)
+    ($($arg:tt)*) => (format_args!($($arg)*))
+);

@@ -19,7 +19,7 @@ type c_void = uint;
 
 #[repr(packed)]
 pub struct Ehdr {
-    e_ident: [c_uchar, ..16u],
+    e_ident: [c_uchar; ..u16],
     e_type: Elf64_Half,
     e_machine: Elf64_Half,
     e_version: Elf64_Word,
@@ -84,7 +84,7 @@ pub struct Elf64_Rela {
 }
 
 pub struct Union_Unnamed2 {
-    data: [c_uchar, ..8u],
+    data: [c_uchar; ..u8],
 }
 impl Union_Unnamed2 {
     pub fn d_val(&mut self) -> *mut Elf64_Xword {
@@ -127,7 +127,7 @@ pub struct Elf64_Vernaux {
 }
 
 pub struct AuxvValue {
-    data: [c_uchar, ..8u],
+    data: [c_uchar; ..u8],
 }
 
 impl AuxvValue {

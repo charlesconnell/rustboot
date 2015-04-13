@@ -22,7 +22,7 @@ macro_rules! likely(
             unsafe { ::rust_core::macros::u8_expect(x as u8, 1) != 0 }
         }
     }
-)
+);
 
 macro_rules! unlikely(
     ($val:expr) => {
@@ -31,7 +31,7 @@ macro_rules! unlikely(
             unsafe { ::rust_core::macros::u8_expect(x as u8, 0) != 0 }
         }
     }
-)
+);
 
 macro_rules! thread_local(
     ($name:ident, $t:ty, $init:expr) => {
@@ -54,4 +54,4 @@ macro_rules! thread_local(
             }
         }
     }
-)
+);

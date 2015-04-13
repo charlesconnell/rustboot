@@ -8,8 +8,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![experimental]
-#![macro_escape]
+#![macro_use]
 
 //! A typesafe bitmask flag generator.
 

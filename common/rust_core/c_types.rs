@@ -49,20 +49,20 @@ pub struct pthread_t {
 
 #[cfg(target_word_size = "32")]
 pub struct pthread_attr_t {
-    size: [u32, ..9]
+    size: [u32; ..9]
 }
 #[cfg(target_word_size = "64")]
 pub struct pthread_attr_t {
-    size: [u64, ..7]
+    size: [u64; ..7]
 }
 
 #[cfg(target_word_size = "32")]
 pub struct pthread_mutex_t {
-    size: [u32, ..6]
+    size: [u32; ..6]
 }
 #[cfg(target_word_size = "64")]
 pub struct pthread_mutex_t {
-    size: [u64, ..5]
+    size: [u64; ..5]
 }
 
 pub struct pthread_mutexattr_t {
@@ -70,7 +70,7 @@ pub struct pthread_mutexattr_t {
 }
 
 pub struct pthread_cond_t {
-    size: [u64, ..6]
+    size: [u64; ..6]
 }
 
 pub struct pthread_condattr_t {

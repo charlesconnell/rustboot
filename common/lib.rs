@@ -1,11 +1,11 @@
 #![crate_name = "main"]
 #![crate_type = "staticlib"]
 #![no_std]
-#![feature(asm, macro_rules, default_type_params, phase, globs, lang_items, intrinsics)]
+#![feature(plugin, no_std, asm, macro_rules, default_type_params, phase, globs, lang_items, intrinsics)]
 
 // The plugin phase imports compiler plugins, including regular macros.
 
-#[phase(plugin, link)]
+#[plugin]
 extern crate core;
 
 #[cfg(target_arch = "x86")]

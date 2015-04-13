@@ -30,18 +30,18 @@ macro_rules! cpuid(
             : "=A"($s1)
             : "A"($n) : "ebx", "edx", "ecx" : "intel");
     );
-)
+);
 
 bitflags!(flags Eflags: u32 {
     const CF = 1 << 0,
     const IF = 1 << 9
-})
+});
 
 impl Eflags {
     fn read() -> Eflags {
         unsafe {
             let mut flags: u32;
-            asm!("pushf; pop $0;" : "=r"(flags) ::: "volatile")
+            asm!("pushf; pop $0;" : "=r"(flags) ::: "volatile");
             Eflags::from_bits_truncate(flags)
         }
     }
@@ -50,7 +50,7 @@ impl Eflags {
 bitflags!(flags CR0Flags: u32 {
     // TODO: all flags
     const CR0_PG = 1 << 31
-})
+});
 
 struct CR0;
 
@@ -176,7 +176,7 @@ impl LocalSegment {
     fn get<'a>() -> &'a mut LocalSegment {
         unsafe {
             let this: &mut LocalSegment;
-            asm!("mov $0, dword[gs:0]" : "=r"(this) ::: "volatile", "intel")
+            asm!("mov $0, dword[gs:0]" : "=r"(this) ::: "volatile", "intel");
             this
         }
     }

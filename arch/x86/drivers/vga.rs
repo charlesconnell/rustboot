@@ -32,12 +32,12 @@ struct Char {
 impl Char {
     #[inline]
     pub fn new(c: char, fg: Color, bg: Color) -> Char {
-        Char { char: c as u8, attr: fg as u8 | (bg as u8 << 4) }
+        Char { char: c as u8, attr: fg as u8 | ((bg as u8) << 4) }
     }
 }
 
 pub const SCREEN_SIZE: uint = 80*25;
-type Screen = [Char, ..SCREEN_SIZE];
+type Screen = [Char; ..SCREEN_SIZE];
 pub static SCREEN: *mut Screen = 0xb8000 as *mut Screen;
 
 pub fn clear_screen(bg: Color) {

@@ -25,12 +25,12 @@ bitflags!(flags GdtAccess: u8 {
     const CODE_READ  = CODE.bits
                       | EXTEND.bits,
     const TSS        = 0b1001
-})
+});
 
 bitflags!(flags GdtFlags: u8 {
     const SIZE_32  = 1 << 6,
     const PAGES    = 1 << 7
-})
+});
 
 pub type GdtReg = DtReg<GdtEntry>;
 
