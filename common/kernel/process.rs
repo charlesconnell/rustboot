@@ -3,8 +3,6 @@ use core::clone::Clone;
 use kernel::mm::{Flags, PageDirectory};
 use kernel::mm::physical;
 
-use util::rt::breakpoint;
-
 use platform::cpu::mmu;
 
 pub struct Process {
@@ -23,7 +21,7 @@ impl Process {
         }
     }
 
-    pub fn mmap(&self, page_ptr: *mut u8, size: uint, flags: Flags) {
+    pub fn mmap(&self, page_ptr: *mut u8, size: usize, flags: Flags) {
         unsafe {
             (*self.paging.as_ptr()).map(page_ptr, size, flags);
         }
@@ -32,7 +30,7 @@ impl Process {
     #[cfg(target_arch = "x86")]
     pub fn enter(&self) {
         unsafe {
-            breakpoint();
+            //breakpoint();
             // TODO need to store physical address
             mmu::switch_directory(self.paging);
             asm!("xor %eax, %eax

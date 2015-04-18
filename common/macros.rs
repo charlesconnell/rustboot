@@ -3,7 +3,7 @@
 macro_rules! define_reg (
     (
         $Reg:ident, $flags:ident: $T:ty {
-            $($flag:ident $(= $v:expr)*),*
+            $($flag:ident = $v:expr),*
         }
     ) => (
         bitflags!(flags $flags: $T { $( const $flag $(= $v)* ),* })

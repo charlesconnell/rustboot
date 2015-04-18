@@ -1,7 +1,6 @@
 //! The Interrupt Table and Isr (Interrupt Service Routine) classes.
 
 use core::mem::transmute;
-use core::ptr::RawPtr;
 
 use cpu::DtReg;
 use cpu::exception::Fault;
@@ -35,8 +34,8 @@ impl Table {
         }
     }
 
-    pub unsafe fn enable_maskable(&mut self, irq: uint, isr: unsafe extern "C" fn()) {
-        *self.table.offset(irq as int) = IdtEntry::new(
+    pub unsafe fn enable_maskable(&mut self, irq: usize, isr: unsafe extern "C" fn()) {
+        *self.table.offset(irq as isize) = IdtEntry::new(
             isr,                // interrupt service routine
             1 << 3,             // segment selector
             INTR_GATE | PRESENT // flags
@@ -48,7 +47,7 @@ impl Table {
 
     #[allow(visible_private_types)]
     pub unsafe fn set_isr(&mut self, val: Fault, code: bool, handler: unsafe extern "C" fn()) {
-        *self.table.offset(val as int) = Isr::new(Int::FaultInt(val), code).idt_entry(handler);
+        *self.table.offset(val as isize) = Isr::new(Int::FaultInt(val), code).idt_entry(handler);
     }
 
     pub unsafe fn load(&self) {

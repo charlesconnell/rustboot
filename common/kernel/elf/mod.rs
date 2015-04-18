@@ -1,5 +1,4 @@
-use core::ptr::RawPtr;
-use core::ptr::{copy_nonoverlapping_memory, set_memory};
+use core::ptr::{copy_nonoverlapping, write_bytes};
 use core::mem::transmute;
 use core::prelude::*;
 use core;
@@ -8,10 +7,10 @@ use kernel::process::Process;
 use kernel::mm;
 use platform::io;
 
-#[cfg(target_word_size = "32")] pub use self::elf32::{Ehdr, Phdr, Auxv, AuxvValue, AuxvType};
-#[cfg(target_word_size = "64")] pub use self::elf64::{Ehdr, Phdr, Auxv, AuxvValue, AuxvType};
-#[cfg(target_word_size = "32")] mod elf32;
-#[cfg(target_word_size = "64")] mod elf64;
+#[cfg(target_pointer_width = "32")] pub use self::elf32::{Ehdr, Phdr, Auxv, AuxvValue, AuxvType};
+#[cfg(target_pointer_width = "64")] pub use self::elf64::{Ehdr, Phdr, Auxv, AuxvValue, AuxvType};
+#[cfg(target_pointer_width = "32")] mod elf32;
+#[cfg(target_pointer_width = "64")] mod elf64;
 
 #[repr(u32)]
 enum HeaderType {
@@ -61,13 +60,13 @@ impl EhdrT for self::Ehdr {
         let mut task = Process::new();
         //TODO: Verify file integrity
         let buffer: *const u8 = transmute(self);
-        let ph_size = self.e_phentsize as int;
-        let ph_base = buffer.offset(self.e_phoff as int);
+        let ph_size = self.e_phentsize as isize;
+        let ph_base = buffer.offset(self.e_phoff as isize);
 
         let mut stack_flags = mm::RW;
 
-        for i in range(0, self.e_phnum) {
-            let pheader = ph_base.offset(ph_size * i as int) as *const Phdr;
+        for i in 0..self.e_phnum {
+            let pheader = ph_base.offset(ph_size * i as isize) as *const Phdr;
 
             match (*pheader).p_type {
                 HeaderType::PT_NULL => {}
@@ -96,8 +95,8 @@ impl EhdrT for self::Ehdr {
         *envp_ptr = transmute(u0);
         *auxv_ptr = Auxv { a_type: AuxvType::AT_NULL, a_un: AuxvValue { data: 0 } };
 
-        let (strs, len): (*const u8, uint) = transmute("test\0");
-        copy_nonoverlapping_memory(str_ptr, strs, len);
+        let (strs, len): (*const u8, usize) = transmute("test\0");
+        copy_nonoverlapping(str_ptr, strs, len);
         *argv_ptr = str_ptr;
 
         // return entry address
@@ -110,9 +109,9 @@ impl EhdrT for self::Ehdr {
 impl PhdrT for self::Phdr {
     unsafe fn load(&self, task: &Process, buffer: *const u8) {
         let vaddr = self.p_vaddr as *mut u8;
-        let mem_size = self.p_memsz as uint;
-        let file_pos = self.p_offset as int;
-        let file_size = self.p_filesz as uint;
+        let mem_size = self.p_memsz as usize;
+        let file_pos = self.p_offset as isize;
+        let file_size = self.p_filesz as usize;
 
         let flags = if self.p_flags.contains(PT_W) {
             mm::RW
@@ -122,8 +121,8 @@ impl PhdrT for self::Phdr {
 
         task.mmap(vaddr, mem_size, flags);
 
-        copy_nonoverlapping_memory(vaddr, buffer.offset(file_pos), file_size);
-        set_memory(vaddr.offset(file_size as int), 0, mem_size - file_size);
+        copy_nonoverlapping(vaddr, buffer.offset(file_pos), file_size);
+        write_bytes(vaddr.offset(file_size as isize), 0, mem_size - file_size);
     }
 }
 

@@ -116,7 +116,7 @@ macro_rules! bitflags {
     ($(#[$attr:meta])* flags $BitFlags:ident: $T:ty {
         $($(#[$Flag_attr:meta])* const $Flag:ident = $value:expr),+
     }) => {
-        #[deriving(PartialEq, Eq, Clone, PartialOrd, Ord)]
+        #[derive(PartialEq, Eq, Clone, PartialOrd, Ord)]
         $(#[$attr])*
         pub struct $BitFlags {
             bits: $T,
@@ -148,9 +148,9 @@ macro_rules! bitflags {
             #[inline]
             pub fn from_bits(bits: $T) -> ::std::option::Option<$BitFlags> {
                 if (bits & !$BitFlags::all().bits()) != 0 {
-                    ::std::option::None
+                    ::std::option::Option::None
                 } else {
-                    ::std::option::Some($BitFlags { bits: bits })
+                    ::std::option::Option::Some($BitFlags { bits: bits })
                 }
             }
 

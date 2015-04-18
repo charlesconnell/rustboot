@@ -1,8 +1,7 @@
 //! Mechanisms for the allocation of kernel objects.
 
-use core::ptr::RawPtr;
 use core::mem::transmute;
-use core::ptr::{set_memory, copy_memory};
+use core::intrinsics::{write_bytes, copy};
 use core::intrinsics::offset;
 use core::intrinsics::ctlz32;
 
@@ -18,18 +17,18 @@ enum Node {
 
 /// The allocator interface. Based on an unfinished RFC.
 pub trait Allocator {
-    fn alloc(&mut self, size: uint) -> (*mut u8, uint);
+    fn alloc(&mut self, size: usize) -> (*mut u8, usize);
 
-    fn zero_alloc(&mut self, s: uint) -> (*mut u8, uint) {
+    fn zero_alloc(&mut self, s: usize) -> (*mut u8, usize) {
         let (ptr, size) = self.alloc(s);
-        unsafe { set_memory(ptr, 0, size); }
+        unsafe { write_bytes(ptr, 0, size); }
         (ptr, size)
     }
 
-    fn realloc(&mut self, src: *mut u8, size: uint) -> (*mut u8, uint) {
+    fn realloc(&mut self, src: *mut u8, size: usize) -> (*mut u8, usize) {
         self.free(src);
         let (ptr, sz) = self.alloc(size);
-        unsafe { copy_memory(ptr, src as *const u8, sz); }
+        unsafe { copy(ptr, src as *const u8, sz); }
         (ptr, sz)
     }
 
@@ -45,33 +44,33 @@ pub trait Allocator {
 /// [1]: http://en.wikipedia.org/wiki/Buddy_memory_allocation
 /// [2]: http://dysphoria.net/OperatingSystems1/4_allocation_buddy_system.html
 pub struct BuddyAlloc {
-    pub order: uint,
+    pub order: usize,
     pub tree: Bitv
 }
 
 pub struct Alloc {
     pub parent: BuddyAlloc,
     pub base: *mut u8,
-    pub el_size: uint
+    pub el_size: usize
 }
 
 impl BuddyAlloc {
-    pub fn new(order: uint, storage: Bitv) -> BuddyAlloc {
+    pub fn new(order: usize, storage: Bitv) -> BuddyAlloc {
         storage.clear(1 << (order + 1));
         BuddyAlloc { order: order, tree: storage }
     }
 
     #[inline]
-    fn offset(&self, index: uint, level: uint) -> uint {
+    fn offset(&self, index: usize, level: usize) -> usize {
         (index + 1 - (1 << self.order >> level)) << level
     }
 
-    fn alloc(&mut self, mut size: uint) -> (uint, uint) {
+    fn alloc(&mut self, mut size: usize) -> (usize, usize) {
         if size == 0 {
             size = 1;
         }
         // smallest power of 2 >= size
-        let lg2_size = 32 - unsafe { ctlz32(size as u32 - 1) } as uint;
+        let lg2_size = 32 - unsafe { ctlz32(size as u32 - 1) } as usize;
 
         let mut index = 0; // points to current tree node
         let mut level = self.order; // current height
@@ -133,7 +132,7 @@ impl BuddyAlloc {
         }
     }
 
-    fn free(&mut self, offset: uint) {
+    fn free(&mut self, offset: usize) {
         let mut length = 1 << self.order;
         let mut left = 0;
         let mut index = 0;
@@ -180,23 +179,23 @@ impl BuddyAlloc {
         }
     }
 
-    fn get(&self, i: uint) -> Node {
+    fn get(&self, i: usize) -> Node {
         unsafe {
             transmute(self.tree.get(i))
         }
     }
 
-    fn set(&self, i: uint, x: Node) {
+    fn set(&self, i: usize, x: Node) {
         self.tree.set(i, x as u8);
     }
 }
 
 impl Allocator for Alloc {
-    fn alloc(&mut self, size: uint) -> (*mut u8, uint) {
+    fn alloc(&mut self, size: usize) -> (*mut u8, usize) {
         let (offset, size) = self.parent.alloc(size);
         unsafe {
             return (
-                self.base.offset((offset << self.el_size) as int),
+                self.base.offset((offset << self.el_size) as isize),
                 size << self.el_size
             )
         }
@@ -211,13 +210,13 @@ impl Allocator for Alloc {
             }
         }
 
-        let offset = (ptr as uint - self.base as uint) >> self.el_size;
+        let offset = (ptr as usize - self.base as usize) >> self.el_size;
         self.parent.free(offset);
     }
 }
 
 impl Alloc {
-    pub fn new(parent: BuddyAlloc, base: *mut u8, el_size: uint) -> Alloc {
+    pub fn new(parent: BuddyAlloc, base: *mut u8, el_size: usize) -> Alloc {
         Alloc { parent: parent, base: base, el_size: el_size }
     }
 }

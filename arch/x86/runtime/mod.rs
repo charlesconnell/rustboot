@@ -1,4 +1,3 @@
-use core::ptr::RawPtr;
 // use rust_core::c_types::c_int;
 
 mod stack;
@@ -6,21 +5,21 @@ mod stack;
 // TODO: use SSE
 
 #[inline]
-fn stosb(s: *mut u8, c: u8, n: uint) {
+fn stosb(s: *mut u8, c: u8, n: usize) {
     unsafe {
         asm!("rep stosb" :: "{al}"(c), "{edi}"(s), "{ecx}"(n))
     }
 }
 
 #[inline]
-fn stosd(s: *mut u8, c: u32, n: uint) {
+fn stosd(s: *mut u8, c: u32, n: usize) {
     unsafe {
         asm!("rep stosl" :: "A"(c), "{edi}"(s), "{ecx}"(n))
     }
 }
 
 #[inline]
-fn stosd8(s: *mut u8, c: u8, n: uint) {
+fn stosd8(s: *mut u8, c: u8, n: usize) {
     unsafe {
         let mut dword: u32 = c as u32;
         dword |= (dword << 24) | (dword << 16) | (dword << 8);
@@ -29,7 +28,7 @@ fn stosd8(s: *mut u8, c: u8, n: uint) {
 }
 
 #[inline]
-fn stosd16(s: *mut u8, c: u16, n: uint) {
+fn stosd16(s: *mut u8, c: u16, n: usize) {
     unsafe {
         let mut dword: u32 = c as u32;
         dword |= dword << 16;
@@ -38,7 +37,7 @@ fn stosd16(s: *mut u8, c: u16, n: uint) {
 }
 
 #[inline]
-fn memset_nonzero(mut s: *mut u8, c: u8, mut n: uint) {
+fn memset_nonzero(mut s: *mut u8, c: u8, mut n: usize) {
     if unlikely!(n == 0) {
         return
     }
@@ -61,14 +60,14 @@ fn memset_nonzero(mut s: *mut u8, c: u8, mut n: uint) {
             },*/
             q => {
                 stosb(s, c, q);
-                s = unsafe { s.offset(q as int) };
+                s = unsafe { s.offset(q as isize) };
                 n -= q;
             }
         }
     }
 }
 
-pub fn wmemset(mut dest: *mut u8, c: u16, n: uint) {
+pub fn wmemset(mut dest: *mut u8, c: u16, n: usize) {
     if unlikely!(n == 0) {
         return;
     }
@@ -83,7 +82,7 @@ pub fn wmemset(mut dest: *mut u8, c: u16, n: uint) {
     stosd16(dest, c, n >> 1);
 }
 
-fn dmemset(s: *mut u8, c: u32, n: uint) {
+fn dmemset(s: *mut u8, c: u32, n: usize) {
     if unlikely!(n == 0) {
         return;
     }
@@ -92,13 +91,13 @@ fn dmemset(s: *mut u8, c: u32, n: uint) {
 }
 
 #[no_mangle]
-pub fn memset(s: *mut u8, c: i32, n: int) {
-    memset_nonzero(s, (c & 0xFF) as u8, n as uint);
+pub fn memset(s: *mut u8, c: i32, n: isize) {
+    memset_nonzero(s, (c & 0xFF) as u8, n as usize);
 }
 
 #[allow(dead_assignment)]
 #[no_mangle]
-pub fn memcpy(dest: *mut u8, src: *const u8, mut n: uint) {
+pub fn memcpy(dest: *mut u8, src: *const u8, mut n: usize) {
     if unlikely!(n == 0) {
         return;
     }
@@ -108,7 +107,7 @@ pub fn memcpy(dest: *mut u8, src: *const u8, mut n: uint) {
             return;
         }
 
-        let offset = (4 - (dest as uint % 4)) % 4;
+        let offset = (4 - (dest as usize % 4)) % 4;
         n -= offset;
 
         let mut pd: *mut u8;
@@ -120,11 +119,11 @@ pub fn memcpy(dest: *mut u8, src: *const u8, mut n: uint) {
 }
 
 #[no_mangle]
-pub fn memmove(dest: *mut u8, src: *const u8, n: uint) {
+pub fn memmove(dest: *mut u8, src: *const u8, n: usize) {
     unsafe {
         if src < dest as *const u8 {
             asm!("std");
-            memcpy(dest.offset(n as int), src.offset(n as int), n);
+            memcpy(dest.offset(n as isize), src.offset(n as isize), n);
             asm!("cld");
         }
         else {
@@ -135,11 +134,11 @@ pub fn memmove(dest: *mut u8, src: *const u8, n: uint) {
 }
 
 #[no_mangle]
-pub unsafe fn memcmp(s1: *const u8, s2: *const u8, n: uint) -> i32 {
+pub unsafe fn memcmp(s1: *const u8, s2: *const u8, n: usize) -> i32 {
     let mut i = 0;
     while i < n {
-        let a = *s1.offset(i as int);
-        let b = *s2.offset(i as int);
+        let a = *s1.offset(i as isize);
+        let b = *s2.offset(i as isize);
         if a != b {
             return (a - b) as i32
         }

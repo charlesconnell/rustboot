@@ -23,7 +23,7 @@ pub fn init() -> Alloc {
 
 #[lang = "exchange_malloc"]
 #[inline]
-pub unsafe fn malloc_raw(size: uint) -> *mut u8 {
+pub unsafe fn malloc_raw(size: usize) -> *mut u8 {
     match get(heap).alloc(size) {
         (_, 0) => out_of_memory(),
         (ptr, _) => ptr
@@ -31,7 +31,7 @@ pub unsafe fn malloc_raw(size: uint) -> *mut u8 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_allocate(size: uint, _align: uint) -> *mut u8 {
+pub unsafe extern "C" fn rust_allocate(size: usize, _align: usize) -> *mut u8 {
     malloc_raw(size)
 }
 
@@ -42,7 +42,7 @@ pub unsafe fn free<T>(ptr: *mut T) {
 }
 
 #[inline]
-pub unsafe fn alloc<T = u8>(count: uint) -> *mut T {
+pub unsafe fn alloc<T = u8>(count: usize) -> *mut T {
     match count.checked_mul(size_of::<T>()) {
         None => out_of_memory(),
         Some(size) => malloc_raw(size) as *mut T
@@ -50,7 +50,7 @@ pub unsafe fn alloc<T = u8>(count: uint) -> *mut T {
 }
 
 #[inline]
-pub unsafe fn zero_alloc<T = u8>(count: uint) -> *mut T {
+pub unsafe fn zero_alloc<T = u8>(count: usize) -> *mut T {
     match count.checked_mul(size_of::<T>()) {
         None => out_of_memory(),
         Some(size) => match get(heap).zero_alloc(size) {
@@ -61,7 +61,7 @@ pub unsafe fn zero_alloc<T = u8>(count: uint) -> *mut T {
 }
 
 #[inline]
-pub unsafe fn realloc_raw<T>(ptr: *mut T, count: uint) -> *mut T {
+pub unsafe fn realloc_raw<T>(ptr: *mut T, count: usize) -> *mut T {
     match count.checked_mul(size_of::<T>()) {
         None => out_of_memory(),
         Some(0) => {

@@ -1,8 +1,5 @@
 //! Higher-level input/output interface.
 
-#[plugin]
-extern crate core;
-
 use core::fmt;
 use core::prelude::*;
 
@@ -34,9 +31,9 @@ pub fn println_args(fmt: &fmt::Arguments) {
     writeln!(&mut Stdout, "{}", fmt);
 }
 
-static mut pos: int = 0;
+static mut pos: isize = 0;
 
-unsafe fn seek(offset: int) {
+unsafe fn seek(offset: isize) {
     pos += offset;
 }
 
@@ -44,13 +41,13 @@ unsafe fn write_char(c: char) {
     if c == '\x08' {
         if pos > 0 {
             if pos % 80 == 0 {
-                while (*vga::SCREEN)[(pos-1) as uint].char == 0 {
+                while (*vga::SCREEN)[(pos-1) as usize].char == 0 {
                     pos -= 1;
                 }
             }
             else if pos > 0 {
                 pos -= 1;
-                (*vga::SCREEN)[pos as uint].char = 0;
+                (*vga::SCREEN)[pos as usize].char = 0;
             }
         }
     }
@@ -61,12 +58,12 @@ unsafe fn write_char(c: char) {
         seek(4 - pos % 4);
     }
     else {
-        (*vga::SCREEN)[pos as uint].char = c as u8;
+        (*vga::SCREEN)[pos as usize].char = c as u8;
         pos += 1;
     }
 
-    pos %= vga::SCREEN_SIZE as int;
-    vga::cursor_at(pos as uint);
+    pos %= vga::SCREEN_SIZE as isize;
+    vga::cursor_at(pos as usize);
 }
 
 pub fn putc(c: u8) {
@@ -75,7 +72,7 @@ pub fn putc(c: u8) {
     }
 }
 
-pub fn puti(num: int) {
+pub fn puti(num: isize) {
 }
 
 pub fn puts(s: &str) {

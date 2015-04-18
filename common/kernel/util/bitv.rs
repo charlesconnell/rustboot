@@ -1,4 +1,4 @@
-use core::ptr::{RawPtr, set_memory};
+use core::intrinsics::write_bytes;
 
 // TODO: make an actual bitmap.
 
@@ -9,17 +9,17 @@ pub struct Bitv {
 
 impl Bitv {
     #[inline]
-    pub fn get(&self, i: uint) -> u8 {
-        let w = (i / 16) as int;
+    pub fn get(&self, i: usize) -> u8 {
+        let w = (i / 16) as isize;
         let b = (i % 16) * 2;
         unsafe {
-            (*self.storage.offset(w) as uint >> b) as u8 & 3
+            (*self.storage.offset(w) as usize >> b) as u8 & 3
         }
     }
 
     #[inline]
-    pub fn set(&self, i: uint, x: u8) {
-        let w = (i / 16) as int;
+    pub fn set(&self, i: usize, x: u8) {
+        let w = (i / 16) as isize;
         let b = (i % 16) * 2;
         unsafe {
             *self.storage.offset(w) = *self.storage.offset(w) & !(3 << b) | ((x as u32) << b)
@@ -31,9 +31,9 @@ impl Bitv {
         self.storage as *mut u8
     }
 
-    pub fn clear(&self, capacity: uint) {
+    pub fn clear(&self, capacity: usize) {
         unsafe {
-            set_memory(self.as_mut_ptr(), 0, capacity / 4);
+            write_bytes(self.as_mut_ptr(), 0, capacity / 4);
         }
     }
 }

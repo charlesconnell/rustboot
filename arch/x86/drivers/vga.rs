@@ -36,7 +36,7 @@ impl Char {
     }
 }
 
-pub const SCREEN_SIZE: uint = 80*25;
+pub const SCREEN_SIZE: usize = 80*25;
 type Screen = [Char; ..SCREEN_SIZE];
 pub static SCREEN: *mut Screen = 0xb8000 as *mut Screen;
 
@@ -46,7 +46,7 @@ pub fn clear_screen(bg: Color) {
     }
 }
 
-pub fn cursor_at(pos: uint) {
+pub fn cursor_at(pos: usize) {
     io::out(0x3D4, 15u16); // WARNING verify should be u16
     io::out(0x3D5, pos as u8);
     io::out(0x3D4, 14u16);

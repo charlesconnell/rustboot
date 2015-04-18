@@ -21,14 +21,14 @@ pub type c_ushort = u16;
 pub type c_int = i32;
 pub type c_uint = u32;
 
-#[cfg(target_word_size = "32")]
+#[cfg(target_pointer_width = "32")]
 pub type c_long = i32;
-#[cfg(target_word_size = "32")]
+#[cfg(target_pointer_width = "32")]
 pub type c_ulong = u32;
 
-#[cfg(target_word_size = "64")]
+#[cfg(target_pointer_width = "64")]
 pub type c_long = i64;
-#[cfg(target_word_size = "64")]
+#[cfg(target_pointer_width = "64")]
 pub type c_ulong = u64;
 
 pub type c_longlong = i64;
@@ -47,20 +47,20 @@ pub struct pthread_t {
     size: c_ulong
 }
 
-#[cfg(target_word_size = "32")]
+#[cfg(target_pointer_width = "32")]
 pub struct pthread_attr_t {
     size: [u32; ..9]
 }
-#[cfg(target_word_size = "64")]
+#[cfg(target_pointer_width = "64")]
 pub struct pthread_attr_t {
     size: [u64; ..7]
 }
 
-#[cfg(target_word_size = "32")]
+#[cfg(target_pointer_width = "32")]
 pub struct pthread_mutex_t {
     size: [u32; ..6]
 }
-#[cfg(target_word_size = "64")]
+#[cfg(target_pointer_width = "64")]
 pub struct pthread_mutex_t {
     size: [u64; ..5]
 }

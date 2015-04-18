@@ -1,5 +1,4 @@
 use core::mem::transmute;
-use core::ptr::RawPtr;
 use core::option::Option;
 
 use kernel::heap;
@@ -24,7 +23,7 @@ pub struct Phys<T> {
 }
 
 impl<T> Phys<T> {
-    pub fn at(offset: uint) -> Phys<T> {
+    pub fn at(offset: usize) -> Phys<T> {
         Phys { ptr: offset as *mut T }
     }
 
@@ -34,7 +33,7 @@ impl<T> Phys<T> {
         }
     }
 }
-
+/*
 impl<T> RawPtr<T> for Phys<T> {
     fn null() -> Phys<T> {
         Phys { ptr: RawPtr::null() }
@@ -44,33 +43,33 @@ impl<T> RawPtr<T> for Phys<T> {
         self.ptr.is_null()
     }
 
-    fn to_uint(&self) -> uint {
-        self.ptr.to_uint()
+    fn to_usize(&self) -> usize {
+        self.ptr.to_usize()
     }
 
     unsafe fn as_ref<'a>(&self) -> Option<&'a T> {
         self.ptr.as_ref()
     }
 
-    unsafe fn offset(self, n: int) -> Phys<T> {
+    unsafe fn offset(self, n: isize) -> Phys<T> {
         Phys { ptr: self.ptr.offset(n) }
     }
 }
-
+*/
 pub fn init() {
     unsafe {
         frames.parent.tree.storage = heap::zero_alloc::<u32>(1024);
     }
 }
 
-pub unsafe fn alloc_frames<T = Frame>(count: uint) -> Phys<T> {
+pub unsafe fn alloc_frames<T = Frame>(count: usize) -> Phys<T> {
     match frames.alloc(count) {
         (_, 0) => abort(),
         (ptr, _) => Phys { ptr: ptr as *mut T }
     }
 }
 
-pub unsafe fn zero_alloc_frames<T = Frame>(count: uint) -> Phys<T> {
+pub unsafe fn zero_alloc_frames<T = Frame>(count: usize) -> Phys<T> {
     match frames.zero_alloc(count) {
         (_, 0) => abort(),
         (ptr, _) => Phys { ptr: ptr as *mut T }
@@ -79,5 +78,5 @@ pub unsafe fn zero_alloc_frames<T = Frame>(count: uint) -> Phys<T> {
 
 #[inline]
 pub unsafe fn free_frames<T>(ptr: Phys<T>) {
-    frames.free(ptr.to_uint() as *mut u8);
+    frames.free(ptr.to_usize() as *mut u8);
 }

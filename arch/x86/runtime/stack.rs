@@ -1,7 +1,7 @@
-pub static RED_ZONE: uint = 5 * 4 * 1024;
+pub static RED_ZONE: usize = 5 * 4 * 1024;
 
 #[cfg(target_arch = "arm")] #[inline(always)]
-fn get_tls() -> uint {
+fn get_tls() -> usize {
     let tls_addr;
     asm!(
         "mrc p15, #0, $0, c13, c0, #3
@@ -16,23 +16,23 @@ fn get_tls() -> uint {
 }
 
 #[inline(always)]
-pub unsafe fn record_sp_limit(limit: uint) {
+pub unsafe fn record_sp_limit(limit: usize) {
     return target_record_sp_limit(limit);
 
     // x86-64
     #[cfg(target_arch = "x86_64")] #[inline(always)]
-    unsafe fn target_record_sp_limit(limit: uint) {
+    unsafe fn target_record_sp_limit(limit: usize) {
         asm!("movq $0, %fs:112" :: "r"(limit) :: "volatile")
     }
 
     // x86
     #[cfg(target_arch = "x86")] #[inline(always)]
-    unsafe fn target_record_sp_limit(limit: uint) {
+    unsafe fn target_record_sp_limit(limit: usize) {
         asm!("movl $0, %gs:48" :: "r"(limit) :: "volatile")
     }
 
     #[cfg(target_arch = "arm")] #[inline(always)]
-    unsafe fn target_record_sp_limit(limit: uint) {
+    unsafe fn target_record_sp_limit(limit: usize) {
         asm!(
             "str $0, [$1]
             mov pc, lr"
@@ -41,12 +41,12 @@ pub unsafe fn record_sp_limit(limit: uint) {
 }
 
 #[inline(always)]
-pub unsafe fn get_sp_limit() -> uint {
+pub unsafe fn get_sp_limit() -> usize {
     return target_get_sp_limit();
 
     // x86-64
     #[cfg(target_arch = "x86_64")] #[inline(always)]
-    unsafe fn target_get_sp_limit() -> uint {
+    unsafe fn target_get_sp_limit() -> usize {
         let limit;
         asm!("movq %fs:112, $0" : "=r"(limit));
         return limit;
@@ -54,14 +54,14 @@ pub unsafe fn get_sp_limit() -> uint {
 
     // x86
     #[cfg(target_arch = "x86")] #[inline(always)]
-    unsafe fn target_get_sp_limit() -> uint {
+    unsafe fn target_get_sp_limit() -> usize {
         let limit;
         asm!("movl %gs:48, $0" : "=r"(limit));
         return limit;
     }
 
     #[cfg(target_arch = "arm")] #[inline(always)]
-    unsafe fn target_get_sp_limit() -> uint {
+    unsafe fn target_get_sp_limit() -> usize {
         let limit;
         asm!(
             "ldr $0, [$1]

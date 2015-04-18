@@ -1,5 +1,6 @@
 use core::mem::size_of;
-use core::option::{Option, None, Some};
+use core::option::Option;
+use core::option::Option::{Some, None};
 use core;
 
 use kernel::heap;
@@ -112,7 +113,7 @@ struct DtReg<T> {
 }
 
 impl<T> DtReg<T> {
-    pub fn new(descriptor_table: *mut T, capacity: uint) -> DtReg<T> {
+    pub fn new(descriptor_table: *mut T, capacity: usize) -> DtReg<T> {
         DtReg {
             size: (capacity * size_of::<T>()) as u16,
             addr: descriptor_table,

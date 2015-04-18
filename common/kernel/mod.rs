@@ -1,4 +1,5 @@
-use core::option::{Option, Some, None};
+use core::option::Option;
+use core::option::Option::{Some, None};
 
 use platform::{cpu, io, drivers};
 use cpu::interrupt;

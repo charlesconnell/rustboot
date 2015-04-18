@@ -1,6 +1,5 @@
 //! Global descriptor table
 
-use core::ptr::RawPtr;
 use core::mem::{size_of, transmute, uninitialized};
 use core;
 
@@ -66,7 +65,7 @@ impl GdtEntry {
     }
 
     pub fn seg<T>(data: *mut T, access: GdtAccess, flags: GdtFlags) -> GdtEntry {
-        assert!(size_of::<T>() < (1u << 20));
+        assert!(size_of::<T>() < (u1 << 20));
         GdtEntry::new(data as u32, size_of::<T>() as u32, access, flags)
     }
 
@@ -93,15 +92,15 @@ impl Gdt {
         }
     }
 
-    pub fn enable(&self, n: uint, mut entry: GdtEntry) {
+    pub fn enable(&self, n: usize, mut entry: GdtEntry) {
         unsafe {
             entry.access = entry.access | PRESENT;
-            *self.table.offset(n as int) = entry;
+            *self.table.offset(n as isize) = entry;
         }
     }
 
-    pub unsafe fn disable(&self, n: uint) {
-        let entry = self.table.offset(n as int);
+    pub unsafe fn disable(&self, n: usize) {
+        let entry = self.table.offset(n as isize);
         (*entry).access = (*entry).access & !PRESENT;
     }
 

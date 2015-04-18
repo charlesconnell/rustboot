@@ -54,14 +54,14 @@ static Exceptions: &'static [&'static str] = &[
 
 // TODO respect destructors
 #[lang="begin_unwind"]
-unsafe extern "C" fn begin_unwind(fmt: &fmt::Arguments, file: &str, line: uint) -> ! {
+unsafe extern "C" fn begin_unwind(fmt: &fmt::Arguments, file: &str, line: usize) -> ! {
     asm!("hlt");
     loop { }; // for divergence check
 }
 
 #[lang = "panic_fmt"]
 pub extern fn rust_begin_unwind(msg: &fmt::Arguments,
-                                file: &'static str, line: uint) -> ! {
+                                file: &'static str, line: usize) -> ! {
     unsafe { asm!("hlt"); }
     loop { }; // for divergence check
 }
@@ -70,7 +70,7 @@ pub extern fn rust_begin_unwind(msg: &fmt::Arguments,
 #[inline(never)]
 unsafe fn blue_screen(stack: &Context) {
     io::puts("Exception ");
-    io::puts(Exceptions[stack.int_no as uint]);
+    io::puts(Exceptions[stack.int_no as usize]);
     asm!("hlt");
 }
 
@@ -85,7 +85,7 @@ pub unsafe fn exception_handler() -> unsafe extern "C" fn() {
     let stack_ptr = Context::save();
 
     if stack_ptr.int_no as u8 == Fault::PageFault as u8 {
-        let cr2: uint;
+        let cr2: usize;
         asm!("mov %cr2, %eax" : "={eax}"(cr2));
         println!("Accessed {0:x} from {1:x}", cr2, stack_ptr.call_stack.eip);
     }

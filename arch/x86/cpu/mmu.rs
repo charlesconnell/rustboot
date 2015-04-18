@@ -3,19 +3,18 @@
 //! defines the Page(uint) and Table<U> implementations.
 
 use core::mem::size_of;
-use core::ptr::copy_nonoverlapping_memory;
+use core::intrinsics::copy_nonoverlapping;
 use core::fmt;
 use core::prelude::*;
 use core;
 
 use kernel::mm::physical;
 use kernel::mm::physical::Phys;
-use util::rt;
 use kernel;
 
 pub type Frame = [u8; ..PAGE_SIZE];
 
-bitflags!(flags Flags: uint {
+bitflags!(flags Flags: usize {
     const PRESENT  = 1 << 0,
     const RW       = 1 << 1,
     const USER     = 1 << 2,
@@ -24,13 +23,13 @@ bitflags!(flags Flags: uint {
 });
 
 #[repr(packed)]
-pub struct Page(uint);
+pub struct Page(usize);
 
-const PAGE_SIZE: uint = 0x1000;
-const PAGE_SIZE_LOG2: uint = 12;
-const ENTRIES:   uint = 1024;
+const PAGE_SIZE: usize = 0x1000;
+const PAGE_SIZE_LOG2: usize = 12;
+const ENTRIES:   usize = 1024;
 
-const DIR_VADDR: uint = 0xFFFFF000;
+const DIR_VADDR: usize = 0xFFFFF000;
 
 struct VMemLayout {
     temp1: PageDirectory,                    // @ 0xFF7FF000
@@ -86,7 +85,7 @@ fn enable_paging() {
     CR0::write(CR0 | CR0_PG);
 }
 
-pub unsafe fn map(page_ptr: *mut u8, len: uint, flags: Flags) {
+pub unsafe fn map(page_ptr: *mut u8, len: usize, flags: Flags) {
     (*VMEM).dir.map(page_ptr, len, flags);
 }
 
@@ -102,7 +101,7 @@ impl Page {
         Page(addr.to_uint()) | flags
     }
 
-    fn at_frame(i: uint, flags: Flags) -> Page {
+    fn at_frame(i: usize, flags: Flags) -> Page {
         Page(i * PAGE_SIZE) | flags
     }
 
@@ -139,25 +138,25 @@ impl fmt::Show for Page {
             if self.contains(USER)     { 'U' } else { ' ' },
             if self.contains(ACCESSED) { 'A' } else { ' ' }
         );
-        write!(fmt, "0x{:x}({}{}{}{})", page, p, r, u, a)
+        write!(fmt, "0x{:x}({}{}{}{})", page, p, r, u, a);
     }
 }
 
 impl<U> Table<U> {
     fn set_addr<S, T>(&mut self, vaddr: *mut S, phys: Phys<T>, flags: Flags) {
         // FIXME error: internal compiler error: missing default for a not explicitely provided type param
-        self.set(vaddr as uint, Page::new(phys, flags));
+        self.set(vaddr as usize, Page::new(phys, flags));
         flush_tlb(vaddr);
     }
 
-    fn set(&mut self, addr: uint, page: Page) { // TODO addr: Phys<T>
+    fn set(&mut self, addr: usize, page: Page) { // TODO addr: Phys<T>
         // update entry, based on the underlying type (page, table)
         let size = size_of::<U>() / size_of::<Page>() * PAGE_SIZE;
         let index = (addr / size) % ENTRIES;
         self.entries[index] = page;
     }
 
-    fn get(&self, addr: uint) -> Page {
+    fn get(&self, addr: usize) -> Page {
         let size = size_of::<U>() / size_of::<Page>() * PAGE_SIZE;
         let index = (addr / size) % ENTRIES;
         self.entries[index]
@@ -165,8 +164,8 @@ impl<U> Table<U> {
 }
 
 impl Table<Page> {
-    fn identity_map(&mut self, start: uint, flags: Flags) {
-        for i in range(0, ENTRIES) {
+    fn identity_map(&mut self, start: usize, flags: Flags) {
+        for i in 0..ENTRIES {
             self.entries[i] = Page::at_frame(start + i, flags);
         }
     }
@@ -175,7 +174,7 @@ impl Table<Page> {
 // Can't impl on typedefs. Rust #9767
 impl Table<Table<Page>> {
     fn fetch_table<T>(&mut self, vptr: *mut T, flags: Flags) -> *mut PageTable {
-        match self.get(vptr as uint) {
+        match self.get(vptr as usize) {
             table @ Page(_) if table.is_present() => {
                 table.physical().as_ptr()
             }
@@ -198,21 +197,21 @@ impl Table<Table<Page>> {
         self.set_page(vptr, physical::alloc_frames(1), flags | PRESENT);
     }
 
-    pub fn map(&mut self, mut page_ptr: *mut u8, len: uint, flags: Flags) {
+    pub fn map(&mut self, mut page_ptr: *mut u8, len: usize, flags: Flags) {
         // TODO: optimize with uints?
         unsafe {
-            let end = page_ptr.offset(len as int);
+            let end = page_ptr.offset(len as isize);
             while page_ptr < end {
                 let frame = physical::alloc_frames(1);
                 self.set_page(page_ptr, frame, flags | PRESENT);
                 (*VMEM).dir.set_page(page_ptr, frame, flags | PRESENT);
-                page_ptr = page_ptr.offset(PAGE_SIZE as int);
+                page_ptr = page_ptr.offset(PAGE_SIZE as isize);
             }
         }
     }
 
     fn map_self(&mut self, this: Phys<PageDirectory>) {
-        self.set(DIR_VADDR as uint, Page::new(this, PRESENT | RW));
+        self.set(DIR_VADDR as usize, Page::new(this, PRESENT | RW));
     }
 
     pub fn clone(&self) -> Phys<PageDirectory> {
@@ -225,7 +224,7 @@ impl Table<Table<Page>> {
             temp1.map_self(dir_phys);
 
             let cnt = 0xC0000000 / (ENTRIES * PAGE_SIZE);
-            copy_nonoverlapping_memory(&mut temp1.entries[0] as *mut Page, &self.entries as *const Page, cnt);
+            copy_nonoverlapping(&mut temp1.entries[0] as *mut Page, &self.entries as *const Page, cnt);
 
             dir_phys
         }

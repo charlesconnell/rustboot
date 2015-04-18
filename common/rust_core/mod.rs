@@ -1,5 +1,6 @@
 // bits of things mined from rust-core
 #![macro_use]
+#![allow(ctypes)]
 
 pub mod c_types;
 pub mod fail;

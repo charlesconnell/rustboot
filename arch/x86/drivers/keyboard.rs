@@ -1,7 +1,7 @@
 use cpu::io;
 use super::keydown;
 
-pub static IRQ: uint = 0x20 + 1;
+pub static IRQ: usize = 0x20 + 1;
 
 pub static Layout: &'static [u8] = b"\
 \x00\x1B1234567890-=\x08\
@@ -47,7 +47,7 @@ fn keypress(code: u8) {
         (0x46, true) => led(0b001), // Scroll lock
         (c, true) if c < 0x3A => unsafe {
             // handle character
-            let mut ch = if shift { LayoutShift[c as uint] } else { Layout[c as uint] };
+            let mut ch = if shift { LayoutShift[c as usize] } else { Layout[c as usize] };
             if ch != 0 {
                 if caps_lock && isalpha(ch) {
                     ch ^= 1 << 5;

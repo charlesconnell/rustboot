@@ -1,5 +1,5 @@
 use core::mem::transmute;
-use core::ptr::copy_nonoverlapping_memory;
+use core::intrinsics::copy_nonoverlapping;
 
 use rust_core::c_types::{c_ushort, c_uint, c_int, c_ulong, c_long};
 
@@ -16,7 +16,7 @@ pub type Elf32_Off = c_uint;
 pub type Elf32_Section = c_ushort;
 pub type Elf32_Symndx = c_uint;
 type c_uchar = u8;
-type c_void = uint;
+type c_void = usize;
 
 #[repr(packed)]
 pub struct Ehdr {
